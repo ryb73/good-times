@@ -1,0 +1,4 @@
+<!-- missing height for rectangle -->
+<Drawing>
+  <Rectangle width='30' center='(100,100)' fill='red'/>
+</Drawing>

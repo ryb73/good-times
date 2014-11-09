@@ -1,0 +1,4 @@
+<!-- duplicate attribute -->
+<Drawing>
+  <Circle center='(100,100)' fill='green'  radius='30' fill='black'/>
+</Drawing>

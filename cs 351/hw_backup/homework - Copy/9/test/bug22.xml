@@ -1,0 +1,4 @@
+<!-- yet another duplicate attribute test -->
+<Drawing>
+<Rectangle height='10' fill='red' center='(100,200)' width='40' height='10'/>
+</Drawing>

@@ -1,0 +1,4 @@
+<!-- Missing radius for circle -->
+<Drawing>
+  <Circle center='(100,200)' fill='blue' outline='black'/>
+</Drawing>

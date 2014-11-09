@@ -1,0 +1,49 @@
+Problem 2:
+	a.
+		3.5.4 is not valid: Any statement of form "if true then t2 else t3" could evaluate either
+		to t2 or to t3 in one step. Therefore, the evaluation is not deterministic.
+
+		3.5.7 is valid: The definition for normaility is unaffected. True and false, the only
+		values in our language, cannot evaluate further and are still normal.
+
+		3.5.8 is valid: The theorem can be restated as "If t is not a value, then t is not in
+		normal form." If t is not a value, then it is of form "if t1 then t2 else t3". This can
+		still be evaluated in all cases, and in fact if t1 evaluates to true, then t can be
+		evaluated in multiple ways.
+
+		3.5.11 is not valid: Consider the term "if true then true else false". This term evaluates
+		to true in 0 or more steps (1 step, in fact), and also evaluates to false in one step.
+		Therefore, e-funny1 contradicts theorem 3.5.11.
+
+		3.5.12 is valid: The given reasoning is still valid. Each evaluation step reduces the size
+		of the term, even if evaluation branches into multiple posibilities.
+
+	b.
+		3.5.4 is not valid: Any statement of form "if t1 then t2 else t3" could continue by either
+		evaluating t1 one step or by evaluating t2 one step. The outcomes from each step of
+		evaluation are not equal, and therefore the evaluation is not deterministic.
+
+		3.5.7 is valid: Again, the definition for normaliity is unaffected, and is still valid.
+
+		3.5.8 is still valid as is.
+
+		3.5.11 is valid. Every term can still be evaluated to a value. The resulting value of
+		evaluation remains the same; e-funny2 only affects the order of evaluation. The proof must
+		be modified to account for the non-determinacy of evaluation.
+
+		3.5.12 is still valid as is. Any evaluation still reduces the size of the term.
+
+	c.
+		3.5.4 is valid: Any term of form "if t then t else t", "succ t", or "pred t" can be
+		evaluated in at most one way.
+
+		3.5.7 is valid: A term is a value if it is of form "true", "false", "0", or "succ nv".
+		None of these can be evaluated further.
+
+		3.5.8 is invalid: "succ true" is not a value, and yet does not evaluate.
+
+		3.5.11 is valid: The theorem holds for all values, because values cannot evaluate. The
+		theorem holds for "if t then t else t" as before. It also holds for "pred t" and "succ t",
+		because the given t can only be evaluated in one way.
+
+		3.5.12 is valid as before.

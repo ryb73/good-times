@@ -1,0 +1,3593 @@
+/*
+ * Featherweight Java
+ *
+ * John Boyland
+ * Fall 2011
+ */
+package edu.uwm.cs.fj;
+
+terminals implicit class extends return this new
+          contradiction value cname fname mname s undefined in $ ok
+
+
+syntax
+
+CT ::= class C { } 	// The "Object" class
+    |  CT class C extends C { ff mm }
+
+ff ::=   *
+    |    C f; ff
+
+mm ::=   *
+    |    C m x { FB[x] } mm
+
+FB ::= } { return t;
+    |  C x, FB[x]
+
+t  ::= x
+    |  t @ f
+    |  t @ m { tt }
+    |  new C { tt }
+    |  C t
+
+tt ::= $
+    |  t , tt
+
+
+CC ::= $
+    | C, CC
+
+
+C  ::= n
+
+f  ::= n
+
+m  ::= n
+
+
+n ::= 0 | s n
+
+
+Gamma ::= * | Gamma, x:C
+
+
+judgment absurd: contradiction
+
+
+
+judgment avalue: t value
+
+tt value
+---------------- new-value
+new C { tt } value
+
+
+judgment values: tt value
+
+-------- empty-values
+$ value
+
+t value
+tt value
+---------- more-values
+t, tt value
+
+
+
+/********************** TERM EQUALITY ******************/
+
+
+judgment class-equal: C == C
+
+----- class-eq
+C == C
+
+
+judgment field-equal: f == f
+
+----- field-eq
+f == f
+
+
+judgment method-equal: m == m
+
+----- method-eq
+m == m
+
+
+judgment fields-equal: ff == ff
+
+------- fields-eq
+ff == ff
+
+
+judgment types-equal: CC == CC
+
+-------- types-eq
+CC == CC
+
+
+judgment method-equal: C x { FB[x] } == C x1 { FB[x1] }
+
+------------------------------ method-eq
+C x { FB[x] } == C x { FB[x] }
+
+
+
+
+/********************* Natural numbers ******************/
+
+
+judgment nat-equal: n = n
+
+----- nat-eq
+n = n
+
+
+judgment gt: n > n
+
+------- gt-one
+s n > n
+
+n1 > n2
+--------- gt-more
+s n1 > n2
+
+
+judgment ne: n <> n
+
+n1 > n2
+-------- ne-gt
+n1 <> n2
+
+n2 > n1
+-------- ne-lt
+n1 <> n2
+
+
+judgment compare: n ? n
+
+------- compare-eq
+n ? n
+
+n1 <> n2
+--------- compare-ne
+n1 ? n2
+
+
+
+/************ SUBTYPING *************/
+
+
+judgment lookup-supertype: CT |- C extends C
+
+
+------------------------------------------- ls-here
+CT class C extends C' { ff mm } |- C extends C'
+
+
+CT |- C extends C'
+--------------------------------------------- ls-there
+CT class C1 extends C1' { ff mm } |- C extends C'
+
+
+
+judgment subtyping: CT |- C <: C
+
+
+------------ S-Refl
+CT |- C <: C
+
+CT |- C1 <: C2
+CT |- C2 <: C3
+-------------- S-Trans
+CT |- C1 <: C3
+
+
+CT |- C extends C'
+------------------ S-Extends
+CT |- C <: C'
+
+
+judgment subtypings: CT |- CC <: CC
+
+
+------------ S-None
+CT |- $ <: $
+
+CT |- C <: C'
+CT |- CC <: CC'
+-------------------- S-Some
+CT |- C,CC <: C',CC'
+
+
+
+/************** CLASS TABLES ***************/
+
+
+judgment class-table-undefined: CT @ C undefined
+
+n <> n'
+-------------------------- ctu-object
+class n { } @ n' undefined
+
+n <> n'
+CT @ n' undefined
+---------------------------------------------- ctu-class
+CT class n extends C' { ff mm } @ n' undefined
+
+
+// The following judgment permits us to go "backward" through the CT
+judgment class-table-includes: CT :> CT
+
+--------- cti-self
+CT :> CT
+
+CT1 :> CT2 class C extends C' { ff mm }
+---------------------------------------- cti-next
+CT1 :> CT2
+
+
+/***************************** FIELDS ***********************/
+
+
+judgment fields-undefined-field: ff @ f undefined
+
+
+--------------- fuf-none
+* @ f undefined
+
+n <> n'
+ff @ n' undefined
+-------------------------- fuf-some
+C n; ff @ n' undefined
+
+
+judgment append-fields: ff # ff = ff
+
+----------- af-none
+* # ff = ff
+
+
+ff1 @ f undefined
+ff2 @ f undefined
+ff1 # ff2 = ff3
+------------------------- af-more
+C f; ff1 # ff2 = C f; ff3
+
+
+
+judgment lookup-fields: CT; CT |- class C { ff }
+
+-------------------------------- lf-object
+CT; class C { } |- class C { * }
+
+CT0; CT0 |- class C' { ff1 }
+ff1 # ff2 = ff3
+-------------------------------------------------------- lf-here
+CT0; CT class C extends C' { ff2 mm } |- class C { ff3 }
+
+CT0; CT |- class C { ff }
+------------------------------------------------------- lf-there
+CT0; CT class C1 extends C1' { ff1 mm } |- class C { ff }
+
+
+
+judgment fields-types: ff : CC
+
+
+----- ft-none
+* : $
+
+
+ff : CC
+-------------- ft-some
+C f; ff : C,CC
+
+
+
+judgment field-type-lookup: ff @ f : C
+
+ff @ f undefined
+--------------- ftl-here
+C f; ff @ f : C
+
+ff @ f : C
+----------------- ftl-there
+C1 f1; ff @ f : C
+
+
+
+
+/***************************** METHODS ***********************/
+
+
+judgment method-args-type: Gamma |- FB : { CC }
+assumes Gamma
+
+------------------------------- mat-none
+Gamma |- } { return t;  : { $ }
+
+
+Gamma, x:C |- FB[x] : { CC }
+------------------------------- mat-some
+Gamma |- C x, FB[x] : { C, CC }
+
+
+
+judgment methods-undefined-method: mm @ m undefined
+
+
+--------------- mum-none
+* @ m undefined
+
+n <> n'
+mm @ n' undefined
+-------------------------- mum-some
+C n x { FB[x] } mm @ n' undefined
+
+
+
+judgment methods-lookup-method: mm @ m = C x { FB[x] }
+
+
+------------------------ mlm-here
+C m x { FB[x] } mm @ m = C x { FB[x] }
+
+
+mm @ m = C x { FB[x] }
+--------------------------- mlm-there
+C1 m1 x1 { FB1[x1] } mm @ m = C x { FB[x] }
+
+
+
+judgment methods-check-method: mm @ m ?
+
+mm @ m = C x { FB[x] }
+------------------------ mcm-yes
+mm @ m ?
+
+mm @ m undefined
+---------------- mcm-no
+mm @ m ?
+
+
+
+judgment lookup-method: CT; CT |- C @ m = C x { FB[x] }
+
+
+mm @ m = C'' x { FB[x] }
+--------------------------------------------------------------- lm-here
+CT0; CT class C extends C' { ff mm } |- C @ m = C'' x { FB[x] }
+
+mm @ m undefined
+CT0; CT0 |- C' @ m = C'' x { FB[x] }
+--------------------------------------------------------------- lm-inherit
+CT0; CT class C extends C' { ff mm } |- C @ m = C'' x { FB[x] }
+
+CT0; CT |- C @ m = C'' x { FB [x] }
+----------------------------------------------------------------- lm-there
+CT0; CT class C1 extends C1' { ff mm } |- C @ m = C'' x { FB[x] }
+
+
+judgment undefined-method: CT; CT |- C @ m undefined
+
+----------------------------------- um-object
+CT0; class C { } |- C @ m undefined
+
+CT @ C undefined
+CT0; CT0 |- C' @ m undefined
+mm @ m undefined
+------------------------------------------------------- um-here
+CT0; CT class C extends C' { ff mm } |- C @ m undefined
+
+n <> n'
+CT0; CT |- n' @ m undefined
+-------------------------------------------------------- um-there
+CT0; CT class n extends C' { ff mm } |- n' @ m undefined
+
+
+
+judgment override-ok: CT |- C @ m :? { CC } -> C
+
+
+CT; CT |- C @ m undefined
+-------------------------- oo-undefined
+CT |- C @ m :? { CC } -> C
+
+CT; CT |- C @ m = C'' x { FB [x] }
+*, x:C |- FB[x] : { CC }
+------------------------------------ oo-defined
+CT |- C @ m :? { CC } -> C''
+
+
+
+
+/**************************** EVALUATION *********************/
+
+
+judgment field-lookup: tt : ff @ f = t
+
+
+ff @ f undefined
+------------------------ fl-here
+t , tt : C f; ff @ f = t
+
+tt : ff @ f = t
+-------------------------- fl-there
+t1 , tt : C f1; ff @ f = t
+
+
+judgment apply : FB tt = t
+
+----------------------- apply-none
+(} { return t; ) $ = t
+
+
+FB[t] tt = t'
+------------------------- apply-some
+(C x, FB[x]) (t, tt) = t'
+
+
+
+judgment evaluation: CT |- t -> t
+
+tt value
+CT; CT |- class C { ff }
+tt : ff @ f = t
+------------------------- E-ProjNew
+CT |- new C { tt } @ f -> t
+
+tt1 value
+tt2 value
+CT; CT |- C @ m = C' x { FB[x] }
+FB[new C{tt1}] tt2 = t1
+----------------------------------- E-InvkNew
+CT |- (new C {tt1}) @ m {tt2} -> t1
+
+tt value
+CT |- C <: C'
+------------------------------------ E-CastNew
+CT |- (C')(new C{tt}) -> new C{tt}
+
+CT |- t -> t'
+--------------------- E-Field
+CT |- t @ f -> t' @ f
+
+CT |- t -> t'
+------------------------- E-Invk-Recv
+CT |- t@m{tt} -> t'@m{tt}
+
+CT |- tt -> tt'
+------------------------- E-Invk-Arg
+CT |- t@m{tt} -> t@m{tt'}
+
+CT |- tt -> tt'
+----------------------------- E-New
+CT |- new C{tt} -> new C{tt'}
+
+CT |- t -> t'
+-------------------- E-Cast
+CT |- (C)t -> (C)t'
+
+
+judgment evaluations: CT |- tt -> tt
+
+CT |- t -> t'
+------------------- E-Arg
+CT |- t,tt -> t',tt
+
+t value
+CT |- tt -> tt'
+------------------- E-Args
+CT |- t,tt -> t,tt'
+
+
+
+/******** TYPES *************/
+
+
+judgment isvar : t:C in Gamma
+assumes Gamma
+
+------------------- var
+x:C in (Gamma, x:C)
+
+
+judgment type: CT; Gamma |- t : C
+assumes Gamma
+
+
+t:C in Gamma
+---------------------- T-Var
+CT; Gamma |- t : C
+
+
+CT; CT |- class C {ff}
+CT; Gamma |- tt : CC1
+ff : CC2
+CT |- CC1 <: CC2
+------------------------------ T-New
+CT; Gamma |- new C{tt} : C
+
+CT; Gamma |- t : C
+CT; CT |- class C {ff}
+ff @ f : C'
+--------------------------- T-Field
+CT; Gamma |- t @ f : C'
+
+CT; Gamma |- t : C
+CT; Gamma |- tt : CC
+CT; CT |- C@m = C' x { FB[x] }
+*, x:C |- FB[x] : { CC' }
+CT |- CC <: CC'
+----------------------------- T-Invoke
+CT; Gamma |- t@m{tt} : C'
+
+CT; Gamma |- t : C
+--------------------------- T-Cast
+CT; Gamma |- (C')t : C'
+
+
+judgment types: CT; Gamma |- tt : CC
+assumes Gamma
+
+
+---------------------- T-None
+CT; Gamma |- $ : $
+
+CT; Gamma |- t : C
+CT; Gamma |- tt : CC
+----------------------------- T-Some
+CT; Gamma |- t,tt : C,CC
+
+
+judgment body-type: CT; Gamma |- FB : C
+assumes Gamma
+
+
+CT; Gamma |- t : C
+---------------------------------- T-Return
+CT; Gamma |- } { return t; : C
+
+CT; Gamma, x:C |- FB[x] : C'
+-------------------------------- T-Formal
+CT; Gamma |- C x, FB[x] : C'
+
+
+
+judgment canonical-forms: CT; Gamma |- t value : C
+assumes Gamma
+
+CT; CT |- class C {ff}
+CT; Gamma |- tt : CC1
+ff : CC2
+CT |- CC1 <: CC2
+tt value
+------------------------------------ canonical-new
+CT; Gamma |- new C{tt} value : C
+
+
+
+/**************** CHECKING CLASSES/METHODS ************/
+
+
+judgment class-table-ok: CT |- CT ok
+
+
+-------------------- O-Object
+CT0 |- class C { } ok
+
+
+CT0 |- CT ok
+CT @ C undefined
+CT0; CT0 |- class C' { ff' }
+ff' # ff = ff1
+CT0; C extends C' |- mm ok
+----------------------------------------- O-Class
+CT0 |- CT class C extends C' { ff mm } ok
+
+
+judgment methods-ok: CT; C extends C |- mm ok
+
+
+------------------------- O-None
+CT; C extends C' |- * ok
+
+
+CT; C extends C' |- mm ok
+mm @ m undefined
+*, x:C |- FB[x] : { CC }
+CT |- C' @ m :? {CC} -> C1
+CT; *,x:C |- FB[x] : C2
+CT |- C2 <: C1
+------------------------------------- O-Method
+CT; C extends C' |- C1 m x { FB[x] } mm ok
+
+
+
+
+/******************** COMBINED JUDGMENTS ************/
+
+
+judgment better-type: CT; Gamma |- t : C <: C
+assumes Gamma
+
+CT; Gamma |- t : C
+CT |- C <: C'
+---------------------------- better
+CT; Gamma |- t : C <: C'
+
+
+judgment better-types: CT; Gamma |- tt : CC <: CC
+assumes Gamma
+
+CT; Gamma |- tt : CC
+CT |- CC <: CC'
+------------------------------- betters
+CT; Gamma |- tt : CC <: CC'
+
+
+judgment better-method: CT; Gamma |- FB : C <: C
+assumes Gamma
+
+CT; Gamma |- FB : C
+CT |- C <: C'
+----------------------------- betterm
+CT; Gamma |- FB : C <: C'
+
+
+
+judgment class-field-lookup-result: CT; CT |- class C {ff} /\ ff @ f : C
+
+
+CT0; CT |- class C {ff}
+ff @ f : C'
+------------------------------------- cflr
+CT0; CT |- class C {ff} /\ ff @f : C'
+
+
+judgment methods-lookup-result: mm @ m = C x { FB[x] } : C -> { CC }
+
+mm @ m = C x { FB[x] }
+*, x:C1 |- FB[x] : { CC }
+------------------------------------ mlr
+mm @ m = C x { FB[x] } : C1 -> { CC }
+
+
+judgment class-method-lookup-result: CT; CT |- C@m = C x { FB[x] } : { CC }
+
+
+CT0; CT |- C@m = C' x { FB[x] }
+*, x:C |- FB[x] : { CC }
+--------------------------------------- cmlr
+CT0; CT |- C@m = C' x { FB[x] } : { CC }
+
+
+
+judgment not-stuck: CT |- t ->?
+
+CT |- t -> t'
+------------- ns-eval
+CT |- t ->?
+
+
+t value
+----------- ns-value
+CT |- t ->?
+
+
+judgment not-stucks: CT |- tt ->?
+
+CT |- tt -> tt'
+--------------- nss-eval
+CT |- tt ->?
+
+
+tt value
+------------ nss-value
+CT |- tt ->?
+
+
+
+/**************************** LEMMAS AND THEOREMS *********************/
+
+// First a few for natural numbers
+
+lemma positive-gt-zero :
+    forall n exists (s n) > 0 .
+    _: (s n) > 0 by induction on n:
+	
+	case 0 is
+	    _: (s 0) > 0 by rule gt-one
+	end case
+	
+	case s n' is
+	    d: (s n') > 0 by induction hypothesis on n'
+	    _: (s (s n')) > 0 by rule gt-more on d
+	end case
+	
+    end induction
+end lemma
+
+
+lemma succ-preserves-gt :
+    forall d: n1 > n2 exists (s n1) > (s n2).
+    _: (s n1) > (s n2) by induction on d:
+	
+	case rule
+	    ---------- gt-one
+	    _: s n > n
+	is
+	    _ : (s (s n)) > (s n) by rule gt-one
+	end case
+	
+	case rule
+	    d1: n1' > n2
+	    -------------- gt-more
+	    _ : s n1' > n2
+	is
+	    d1': (s n1') > (s n2) by induction hypothesis on d1
+	    _ : (s (s n1')) > (s n2) by rule gt-more on d1'
+	end case
+	
+    end induction
+end lemma
+
+
+lemma succ-cancels-gt :
+    forall d: (s n1) > (s n2) exists n1 > n2.
+    _: n1 > n2 by induction on d:
+	
+	case rule
+	    -------------------- gt-one
+	    _: s (s n2) > (s n2)
+	is
+	    _ : (s n2) > n2 by rule gt-one
+	end case
+	
+	case rule
+	    d1: n1 > (s n2)
+	    ------------------- gt-more
+	    _ : (s n1) > (s n2)
+	is
+	    _ : n1 > n2 by case analysis on n1:
+		
+		case 0 is
+		    _ : n1 > n2 by case analysis on d1:
+		    end case analysis
+		end case
+		
+		case s n1' is
+		    d1': n1' > n2 by induction hypothesis on d1
+		    _ : (s n1') > n2 by rule gt-more on d1'
+		end case
+		
+	    end case analysis
+	end case
+	
+    end induction
+end lemma
+
+
+theorem gt-anti-reflexive : 
+    forall n forall d: n > n exists contradiction.
+    _ : contradiction by induction on n:
+	
+	case 0 is
+	    _ : contradiction by case analysis on d:
+	    end case analysis
+	end case
+	
+	case s n' is
+	    d1 : n' > n' by lemma succ-cancels-gt on d
+	    _ : contradiction by induction hypothesis on n', d1
+	end case
+	
+    end induction
+end theorem
+
+
+theorem gt-transitive :
+    forall d12: n1 > n2 forall d23: n2 > n3 exists n1 > n3.
+    _: n1 > n3 by induction on d12:
+	
+	case rule
+	    ------------- gt-one
+	    _ : s n2 > n2
+	is
+	    _: s n2 > n3 by rule gt-more on d23
+	end case
+	
+	case rule
+	    d12': n1' > n2
+	    -------------- gt-more
+	    _ : s n1' > n2
+	is
+	    d13': n1' > n3 by induction hypothesis on d12', d23
+	    _: s n1' > n3 by rule gt-more on d13'
+	end case
+	
+    end induction
+end theorem
+
+
+theorem ne-anti-reflexive:
+    forall ne: n <> n
+    exists contradiction .
+    _ : contradiction by case analysis on ne:
+
+	case rule
+	    g: n > n
+	    --------- ne-gt
+	    _: n <> n
+	is
+	    _: contradiction by theorem gt-anti-reflexive on n,g
+	end case
+
+	case rule
+	    g: n > n
+	    --------- ne-lt
+	    _: n <> n
+	is
+	    _: contradiction by theorem gt-anti-reflexive on n,g
+	end case
+
+    end case analysis
+end theorem
+
+
+theorem ne-symmetric :
+    forall d: n1 <> n2
+    exists n2 <> n1 .
+    _: n2 <> n1 by case analysis on d:
+
+	case rule
+	    g: n2 > n1
+	    ------------ ne-lt
+	    _: n1 <> n2
+	is
+	    _: n2 <> n1 by rule ne-gt on g
+	end case
+
+	case rule
+	    g: n1 > n2
+	    ----------- ne-gt
+	    _: n1 <> n2
+	is
+	    _: n2 <> n1 by rule ne-lt on g
+	end case
+
+    end case analysis
+end theorem
+
+
+lemma succ-preserves-ne:
+    forall d: n1 <> n2
+    exists s n1 <> s n2 .
+    _: s n1 <> s n2 by case analysis on d:
+
+	case rule
+	    g: n2 > n1
+	    ------------ ne-lt
+	    _: n1 <> n2
+	is
+	    g': s n2 > s n1 by lemma succ-preserves-gt on g
+	    _: s n1 <> s n2 by rule ne-lt on g'
+	end case
+
+	case rule
+	    g: n1 > n2
+	    ----------- ne-gt
+	    _: n1 <> n2
+	is
+	    g': s n1 > s n2 by lemma succ-preserves-gt on g
+	    _: s n1 <> s n2 by rule ne-gt on g'
+	end case
+
+    end case analysis
+end lemma
+
+
+lemma ge-gt-contradiction :
+  forall ge: (s n1) > n2
+  forall gt: n2 > n1
+  exists contradiction .
+  _ : contradiction by case analysis on ge:
+    case rule
+      ------------ gt-one
+      _: (s n) > n
+    is
+      _ : contradiction by theorem gt-anti-reflexive on n,gt
+    end case
+    case rule
+      gt': n1 > n2
+      ------------ gt-more
+      _: s n1 > n2
+    is
+      g : n2 > n2 by theorem gt-transitive on gt,gt'
+      _ : contradiction by theorem gt-anti-reflexive on n2,g
+    end case
+  end case analysis
+end lemma
+
+
+lemma compare-total:
+    forall n1
+    forall n2
+    exists n1 ? n2 .
+    _ : n1 ? n2 by induction on n1:
+	case 0 is
+	    _ : 0 ? n2 by case analysis on n2:
+		case 0 is
+		    _: 0 ? 0 by rule compare-eq
+		end case
+		case s n2' is
+		    c: (s n2') > 0 by lemma positive-gt-zero on n2'
+		    d: (s n2') <> 0 by rule ne-gt on c
+		    e: 0 <> (s n2') by lemma ne-symmetric on d
+		    _: 0 ? (s n2') by rule compare-ne on e
+		end case
+	    end case analysis
+	end case
+
+	case s n1' is
+	    _ : s n1' ? n2 by case analysis on n2:
+		case 0 is
+		    c: s n1' > 0 by lemma positive-gt-zero on n1'
+		    d: s n1' <> 0 by rule ne-gt on c
+		    _ : s n1' ? 0 by rule compare-ne on d
+		end case
+		case s n2' is
+		    c : n1' ? n2' by induction hypothesis on n1',n2'
+		    _ : s n1' ? s n2' by case analysis on c:
+			case rule
+			    ------------ compare-eq
+			    _: n' ? n'
+			is
+			    _ : s n' ? s n' by rule compare-eq
+			end case
+			case rule
+			    g': n1' <> n2'
+			    ------------- compare-ne
+			    _:n1' ? n2'
+			is
+			    g: s n1' <> s n2' by lemma succ-preserves-ne on g'
+			    _ : s n1' ? s n2' by rule compare-ne on g
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+
+
+/************** HELPER METHODS ************/
+
+
+// This is the only lemma that uses the class-table-includs relation usefully
+lemma backward-extends:
+    forall e: CT1 |- C extends C' 
+    forall i: CT0 :> CT1
+    exists CT0 |- C extends C'.
+    _: CT0 |- C extends C' by induction on i:
+	case rule
+	    ------------- cti-self
+	    _: CT0 :> CT0
+	is
+	    _: CT0 |- C extends C' by e
+	end case
+
+	case rule
+	    i1: CT0 :> CT1 class C1 extends C1' { ff mm }
+	    ---------------------------------------------- cti-next
+	    _: CT0 :> CT1
+	is
+	    e1 : CT1 class C1 extends C1' { ff mm } |- C extends C' by rule ls-there on e
+	    _: CT0 |- C extends C' by induction hypothesis on e1,i1
+	end case
+    end induction
+end lemma
+
+
+lemma this-binding-irrelevant :
+    forall mt: Gamma, x:C1 |- FB[x] : { CC }
+    forall C2
+    exists Gamma, x:C2 |- FB[x] : { CC }.
+    _: Gamma, x:C2 |- FB[x] : { CC } by induction on mt:
+	case rule
+	    ----------------------------------------- mat-none
+	    _: Gamma, x:C1 |- } { return t[x]; : { $ }
+	is
+	    _: Gamma, x:C2 |- } { return t[x]; : { $ } by rule mat-none
+	end case
+
+	case rule
+	    mt1: Gamma, x:C1, x':C' |- FB1[x][x'] : { CC1 }
+	    ------------------------------------------------ mat-some
+	    _: Gamma, x:C1 |- C' x', FB1[x][x'] : { C', CC1 }
+	is
+	    mt1x: Gamma, x':C', x:C1 |- FB1[x][x'] : { CC1 } by exchange on mt1
+	    mt1': Gamma, x':C', x:C2 |- FB1[x][x'] : { CC1 } by induction hypothesis on mt1x,C2
+	    mtx:  Gamma, x:C2, x':C' |- FB1[x][x'] : { CC1 } by exchange on mt1'
+	    _:    Gamma, x:C2 |- C' x', FB1[x][x'] : { C', CC1 } by rule mat-some on mtx
+	end case
+    end induction
+end lemma
+
+lemma this-binding-subst:
+    forall mt: Gamma, x:C1 |- FB[x] : { CC }
+    forall t
+    exists Gamma |- FB[t] : { CC }.
+    _: Gamma |- FB[t] : { CC } by induction on mt:
+	case rule
+	    ----------------------------------------- mat-none
+	    _: Gamma, x:C1 |- } { return t1[x]; : { $ }
+	is
+	    _: Gamma |- } { return t1[t]; : { $ } by rule mat-none
+	end case
+
+	case rule
+	    mt1: Gamma, x:C1, x':C' |- FB1[x][x'] : { CC1 }
+	    ------------------------------------------------ mat-some
+	    _: Gamma, x:C1 |- C' x', FB1[x][x'] : { C', CC1 }
+	is
+	    mt1x: Gamma, x':C', x:C1 |- FB1[x][x'] : { CC1 } by exchange on mt1
+	    mt1': Gamma, x':C' |- FB1[t][x'] : { CC1 } by induction hypothesis on mt1x,t
+	    _:    Gamma |- C' x', FB1[t][x'] : { C', CC1 } by rule mat-some on mt1'
+	end case
+    end induction
+end lemma
+
+
+lemma field-append-preserves-undefined:
+    forall fa: ff1 # ff2 = ff3
+    forall u1: ff1 @ f undefined
+    forall u2: ff2 @ f undefined
+    exists ff3 @ f undefined .
+    _: ff3 @ f undefined by induction on fa:
+	case rule
+	    ----------------- af-none
+	    _: * # ff2 = ff2
+	is
+	    _: ff2 @ f undefined by u2
+	end case
+
+	case rule
+	    _: ff1' @ f1 undefined
+	    _: ff2 @ f1 undefined
+	    fa': ff1' # ff2 = ff3'
+	    --------------------------------------- af-more
+	    _: (C1 f1; ff1') # ff2 = (C1 f1; ff3')
+	is
+	    _: (C1 f1; ff3') @ f undefined by case analysis on u1:
+		case rule
+		    ne: n1 <> n
+		    u1': ff1' @ n undefined
+		    ------------------------------ fuf-some
+		    _: (C1 n1; ff1') @ n undefined
+		is
+		    u3': ff3' @ n undefined by induction hypothesis on fa',u1',u2
+		    _: (C1 f1; ff3') @ f undefined by rule fuf-some on ne,u3'
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+lemma field-left-append-unique:
+    forall fa: ff1 # ff2 = ff3
+    forall fa': ff1' # ff2 = ff3'
+    forall e1: ff1 == ff1'
+    exists ff3 == ff3' .
+    _: ff3 == ff3' by induction on fa:
+	case rule
+	    ----------------- af-none
+	    _: * # ff2 = ff2
+	is
+	    _: ff2 == ff3' by case analysis on e1:
+		case rule
+		    --------- fields-eq
+		    _: * == *
+		is
+		    _: ff2 == ff3' by case analysis on fa':
+			case rule
+			    ----------------- af-none
+			    _: * # ff2 = ff2
+			is
+			    _: ff2 == ff2 by rule fields-eq
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+	
+	case rule
+	    _: ff11 @ f undefined
+	    _: ff2 @ f undefined
+	    fa1: ff11 # ff2 = ff31
+	    ------------------------------ af-more
+	    _: C f; ff11 # ff2 = C f; ff31
+	is
+	    _: (C f; ff31) == ff3' by case analysis on e1:
+		case rule
+		    ----------------------------- fields-eq
+		    _: (C f; ff11) == (C f; ff11)
+		is
+		    _: (C f; ff31) == ff3' by case analysis on fa':
+			case rule
+			    _: ff11 @ f undefined
+			    _: ff2 @ f undefined
+			    fa1': ff11 # ff2 = ff31'
+			    ------------------------------- af-more
+			    _: C f; ff11 # ff2 = C f; ff31'
+			is
+			    e1': ff11 == ff11 by rule fields-eq
+			    e3': ff31 == ff31' by induction hypothesis on fa1,fa1',e1'
+			    _: (C f; ff31) == (C f; ff31') by case analysis on e3':
+				case rule
+				    --------------- fields-eq
+				    _: ff31 == ff31
+				is
+				    _: (C f; ff31) == (C f; ff31) by rule fields-eq
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+	
+lemma field-lookup-undefined-contradiction:
+    forall cfl: CT0; CT |- class C { ff }
+    forall cfu: CT @ C undefined
+    exists contradiction .
+    _: contradiction by induction on cfl:
+	case rule
+	    ------------------------------------ lf-object
+	    _: CT0; class C { } |- class C { * }
+	is
+	    _: contradiction by case analysis on cfu:
+		case rule
+		    nen: n <> n
+		    ---------------------------- ctu-object
+		    _: class n { } @ n undefined
+		is
+		    _: contradiction by lemma ne-anti-reflexive on nen
+		end case
+	    end case analysis
+	end case
+	
+	case rule
+	    _: CT0; CT0 |- class C' { ff1 }
+	    _: ff1 # ff2 = ff
+	    ---------------------------------------------------------- lf-here
+	    _: CT0; CT1 class C extends C' { ff2 mm } |- class C { ff }
+	is
+	    _: contradiction by case analysis on cfu:
+		case rule
+		    nen: n <> n
+		    _: CT1 @ n' undefined
+		    ------------------------------------------------- ctu-class
+		    _: CT1 class n extends C' { ff2 mm } @ n undefined
+		is
+		    _: contradiction by lemma ne-anti-reflexive on nen
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    cfl1: CT0; CT1 |- class C { ff }
+	    ------------------------------------------------------------ lf-there
+	    _: CT0; CT1 class C1 extends C1' { ff1 mm } |- class C { ff }
+	is
+	    _: contradiction by case analysis on cfu:
+		case rule
+		    _: n <> n'
+		    cfu1: CT1 @ n' undefined
+		    ----------------------------------------------------- ctu-class
+		    _: CT1 class n extends C1' { ff1 mm1 } @ n' undefined
+		is
+		    _: contradiction by induction hypothesis on cfl1, cfu1
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+lemma field-lookup-unique:
+    forall o0: CT0 |- CT0 ok
+    forall o: CT0 |- CT ok
+    forall cfl:  CT0; CT |- class C { ff }
+    forall cflp: CT0; CT |- class C { ff' }
+    exists ff == ff' .
+    _: ff == ff' by induction on cfl:
+	case rule 
+	    ------------------------------------ lf-object
+	    _: CT0; class C { } |- class C { * }
+	is
+	    _: ff == ff' by case analysis on cflp:
+		case rule 
+		    ------------------------------------ lf-object
+		    _: CT0; class C { } |- class C { * }
+		is
+		    _: ff == ff' by rule fields-eq
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    cfls: CT0; CT0 |- class C' { ff1 }
+	    fa: ff1 # ff2 = ff
+	    ----------------------------------------------------------- lf-here
+	    _: CT0; CT1 class C extends C' { ff2 mm } |- class C { ff }
+	is 
+	    _: ff == ff' by case analysis on cflp:
+		case rule
+		    cflsp: CT0; CT0 |- class C' { ff1' }
+		    fap: ff1' # ff2 = ff'
+		    ----------------------------------------------------------- lf-here
+		    _: CT0; CT1 class C extends C' { ff2 mm } |- class C { ff' }
+		is 
+		    e1: ff1 == ff1' by induction hypothesis on o0, o0, cfls, cflsp
+		    _: ff == ff' by lemma field-left-append-unique on fa, fap, e1
+		end case
+		case rule
+		    cfl1': CT0; CT1 |- class C { ff' }
+		    --------------------------------------------------------------- lf-there
+		    _: CT0; CT1 class C extends C' { ff2 mm } |- class C { ff' }
+		is	    
+		    _: ff == ff' by case analysis on o:
+			case rule
+			    _: CT0 |- CT1 ok
+			    ctu: CT1 @ C undefined
+			    _: CT0; CT0 |- class C' { ff1' }
+			    _: ff1' # ff2 = ff3
+			    _: CT0; C extends C' |- mm ok
+			    ------------------------------------------------- O-Class
+			    _: CT0 |- CT1 class C extends C' { ff2 mm } ok
+			is
+			    c: contradiction 
+				    by lemma field-lookup-undefined-contradiction on cfl1', ctu
+			    _: ff == ff' by case analysis on c: end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    cfl1: CT0; CT1 |- class C { ff }
+	    ----------------------------------------------------------- lf-there
+	    _: CT0; CT1 class C1 extends C1' { ff1 mm1 } |- class C { ff }
+	is
+	    _: ff == ff' by case analysis on cflp:
+		case rule
+		    cfl1': CT0; CT1 |- class C { ff' }
+		    --------------------------------------------------------------- lf-there
+		    _: CT0; CT1 class C1 extends C1' { ff1 mm1 } |- class C { ff' }
+		is
+		    _: ff == ff' by case analysis on o:
+			case rule
+			    o1: CT0 |- CT1 ok
+			    _: CT1 @ C1 undefined
+			    _: CT0; CT0 |- class C1' { ff1' }
+			    _: ff1' # ff1 = ff3'
+			    _: CT0; C1 extends C1' |- mm1 ok
+			    -------------------------------------------------- O-Class
+			    _: CT0 |- CT1 class C1 extends C1' { ff1 mm1 } ok
+			is
+			    _: ff == ff' by induction hypothesis on o0,o1,cfl1,cfl1'
+			end case
+		    end case analysis
+		end case
+		case rule
+		    cflsp: CT0; CT0 |- class C' { ff1' }
+		    fap: ff1' # ff2 = ff'
+		    ----------------------------------------------------------- lf-here
+		    _: CT0; CT1 class C extends C' { ff2 mm } |- class C { ff' }
+		is 
+		    _: ff == ff' by case analysis on o:
+			case rule
+			    _: CT0 |- CT1 ok
+			    ctu: CT1 @ C undefined
+			    _: CT0; CT0 |- class C' { ff1'' }
+			    _: ff1'' # ff2 = ff3
+			    _: CT0; C extends C' |- mm ok
+			    ------------------------------------------------- O-Class
+			    _: CT0 |- CT1 class C extends C' { ff2 mm } ok
+			is
+			    c: contradiction 
+				    by lemma field-lookup-undefined-contradiction on cfl1, ctu
+			    _: ff == ff' by case analysis on c: end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+lemma inherited-field-unchanged :
+    forall fs: ff1 @ f : C
+    forall fa: ff1 # ff2 = ff3
+    exists ff3 @ f : C .
+    _: ff3 @ f : C by induction on fs:
+	case rule
+	    _: ff1' @ f undefined
+	    --------------------- ftl-here
+	    _: C f; ff1' @ f : C
+	is
+	    _: ff3 @ f : C by case analysis on fa:
+		case rule
+		    u1': ff1' @ f undefined
+		    u2: ff2 @ f undefined
+		    fa': ff1' # ff2 = ff3'
+		    ------------------------------ af-more
+		    _: C f; ff1' # ff2 = C f; ff3'
+		is
+		    u3': ff3' @ f undefined by lemma field-append-preserves-undefined on fa',u1',u2
+		    _: (C f; ff3') @ f : C by rule ftl-here on u3'
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    fs': ff1' @ f : C
+	    ---------------------- ftl-there
+	    _: C1 f1; ff1' @ f : C
+	is
+	    _: ff3 @ f : C by case analysis on fa:
+		case rule
+		    _: ff1' @ f1 undefined
+		    _: ff2 @ f1 undefined
+		    fa': ff1' # ff2 = ff3'
+		    ---------------------------------- af-more
+		    _: C1 f1; ff1' # ff2 = C1 f1; ff3'
+		is
+		    fl': ff3' @ f : C by induction hypothesis on fs', fa'
+		    _: (C1 f1; ff3') @ f : C by rule ftl-there on fl'
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+lemma class-field-extends-lookup:
+    forall o0: CT0 |- CT0 ok
+    forall o:  CT0 |- CT ok
+    forall fl: CT0; CT0 |- class C1 { ff1 }
+    forall fs: ff1 @ f : C'
+    forall e:  CT |- C2 extends C1
+    exists CT0; CT |- class C2 { ff2 } /\ ff2 @ f : C' .
+    _: CT0; CT |- class C2 { ff2 } /\ ff2 @ f : C' by induction on e:
+	case rule
+	    -------------------------------------------------------- ls-here
+	    _: CT1 class C2 extends C1 { ff2' mm2 } |- C2 extends C1
+	is
+	    _: CT0; CT |- class C2 { ff2 } /\ ff2 @ f : C' by case analysis on o:
+		case rule
+		    o1: CT0 |- CT1 ok
+		    _: CT1 @ C2 undefined
+		    fl': CT0; CT0 |- class C1 { ff1' }
+		    fa: ff1' # ff2' = ff2
+		    _: CT0; C2 extends C1 |- mm2 ok
+		    ------------------------------------------------ O-Class
+		    _: CT0 |- CT1 class C2 extends C1 { ff2' mm2 } ok
+		is
+		    e: ff1 == ff1' by lemma field-lookup-unique on o0, o0, fl, fl'
+		    _: CT0; CT |- class C2 { ff2 } /\ ff2 @ f : C' by case analysis on e:
+			case rule
+			    ------------ fields-eq
+			    _: ff1 == ff1
+			is
+			    fl2: CT0; CT |- class C2 { ff2 } by rule lf-here on fl, fa
+			    fs2: ff2 @ f : C' by lemma inherited-field-unchanged on fs, fa
+			    _: CT0; CT |- class C2 { ff2 } /\ ff2 @ f : C' by rule cflr on fl2, fs2
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    e1: CT1 |- C2 extends C1
+	    ------------------------------------------------------- ls-there
+	    _: CT1 class C4 extends C3 { ff4' mm4 } |- C2 extends C1
+	is
+	    _: CT0; CT |- class C2 { ff2 } /\ ff2 @ f : C' by case analysis on o:
+		case rule
+		    o1: CT0 |- CT1 ok
+		    _: CT1 @ C4 undefined
+		    _: CT0; CT0 |- class C3 { ff3 }
+		    _: ff3 # ff4' = ff4
+		    _: CT0; C4 extends C3 |- mm4 ok
+		    ------------------------------------------------ O-Class
+		    _: CT0 |- CT1 class C4 extends C3 { ff4' mm4 } ok
+		is
+		    r: CT0; CT1 |- class C2 { ff2 } /\ ff2 @ f : C' by induction hypothesis on o0, o1, fl, fs, e1
+		    fl12: CT0; CT1 |- class C2 { ff2 } by inversion of cflr on r
+		    fs1: ff2 @ f : C' by inversion of cflr on r
+		    fl2: CT0; CT |- class C2 { ff2 } by rule lf-there on fl12
+		    _: CT0; CT |- class C2 { ff2 } /\ ff2 @ f : C' by rule cflr on fl2, fs1
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+lemma class-field-subtype-lookup:
+    forall o: CT |- CT ok
+    forall fl1: CT; CT |- class C1 { ff1 }
+    forall fs1: ff1 @ f : C'
+    forall s: CT |- C2 <: C1
+    exists CT; CT |- class C2 { ff2 } /\ ff2 @ f : C' .
+    _ : CT; CT |- class C2 { ff2 } /\ ff2 @ f : C' by induction on s:
+	case rule
+	    ----------------- S-Refl
+	    _: CT |- C1 <: C1
+	is
+	    _: CT; CT |- class C1 { ff1 } /\ ff1 @ f : C' by rule cflr on fl1,fs1
+	end case
+
+	case rule
+	    s2: CT |- C2 <: C
+	    s1: CT |- C <: C1
+	    ------------------ S-Trans
+	    _: CT |- C2 <: C1
+	is
+	    r: CT; CT |- class C { ff } /\ ff @ f : C' by induction hypothesis on o,fl1,fs1,s1
+	    fl2 : CT; CT |- class C { ff } by inversion of cflr on r
+	    fs2 : ff @ f : C' by inversion of cflr on r
+	    _: CT; CT |- class C2 { ff2 } /\ ff2 @ f : C' by induction hypothesis on o,fl2,fs2,s2 
+	end case
+
+	case rule
+	    e: CT |- C2 extends C1
+	    ---------------------- S-Extends
+	    _: CT |- C2 <: C1
+	is
+	    _: CT; CT |- class C2 { ff2 } /\ ff2 @ f : C' by lemma class-field-extends-lookup on o,o,fl1,fs1,e
+	end case
+    end induction
+end lemma
+
+
+lemma methods-lookup-undefined-contradiction:
+    forall mlm: mm @ m = C x { FB[x] }
+    forall mum: mm @ m undefined
+    exists contradiction .
+    _: contradiction by induction on mlm:
+	case rule
+	    ----------------------------------------- mlm-here
+	    _: C m x { FB[x] } mm1 @ m = C x { FB[x] }
+	is
+	    _: contradiction by case analysis on mum:
+		case rule
+		    nen: n <> n
+		    _: mm1 @ n undefined
+		    ------------------------------------ mum-some
+		    _: C n x { FB[x] } mm1 @ n undefined
+		is
+		    _: contradiction by lemma ne-anti-reflexive on nen
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    mlm1: mm1 @ m = C x { FB[x] }
+	    ----------------------------------------------- mlm-there
+	    _: C1 m1 x1 { FB1[x1] } mm1 @ m = C x { FB[x] }
+	is
+	     _: contradiction by case analysis on mum:
+		case rule
+		    _: n <> n'
+		    mum1: mm1 @ n' undefined
+		    ---------------------------------------- mum-some
+		    _: C1 n x { FB1[x] } mm1 @ n' undefined
+		is
+		    _: contradiction by induction hypothesis on mlm1, mum1
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+lemma methods-lookup-method-unique:
+    forall om: CT; C2 extends C1 |- mm ok
+    forall mlm: mm @ m = C x { FB[x] }
+    forall mlm': mm @ m = C' x { FB'[x] }
+    exists C x { FB[x] } == C' x' { FB'[x'] }.
+    _: C x { FB[x] } == C' x' { FB'[x'] } by induction on mlm:
+	case rule
+	    ------------------------------------------ mlm-here
+	    _: C m x { FB[x] } mm1 @ m = C x { FB[x] }
+	is
+	    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on mlm':
+		case rule
+		    ------------------------------------------ mlm-here
+		    _: C m x { FB[x] } mm1 @ m = C x { FB[x] }
+		is
+		    _: C x { FB[x] } == C' x' { FB'[x'] } by rule method-eq
+		end case
+		case rule
+		    mlm1': mm1 @ m = C' x { FB'[x] }
+		    --------------------------------------------- mlm-there
+		    _: C m x { FB[x] } mm1 @ m = C' x { FB'[x] }
+		is
+		    c: contradiction by case analysis on om:
+			case rule
+			    _: CT; C2 extends C1 |- mm1 ok
+			    mum1: mm1 @ m undefined
+			    _: *, x:C2 |- FB[x] : { CC }
+			    _: CT |- C1 @ m :? {CC} -> C
+			    _: CT; *,x:C2 |- FB[x] : C''
+			    _: CT |- C'' <: C
+			    ---------------------------------------------- O-Method
+			    _: CT; C2 extends C1 |- C m x { FB[x] } mm1 ok
+			is
+			    _: contradiction by lemma methods-lookup-undefined-contradiction on mlm1', mum1
+			end case
+		    end case analysis
+		    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on c: end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    mlm1: mm1 @ m = C x { FB[x] }
+	    ----------------------------------------------- mlm-there
+	    _: C11 m1 x1 { FB1[x1] } mm1 @ m = C x { FB[x] }
+	is
+	    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on om:
+		case rule
+		    om1: CT; C2 extends C1 |- mm1 ok
+		    mum1: mm1 @ m1 undefined
+		    _: *, x:C2 |- FB1[x] : { CC }
+		    _: CT |- C1 @ m1 :? {CC} -> C11
+		    _: CT; *, x:C2 |- FB1[x] : C11'
+		    _: CT |- C11' <: C11
+		    ---------------------------------------------------- O-Method
+		    _: CT; C2 extends C1 |- C11 m1 x1 { FB1[x1] } mm1 ok
+		is
+		    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on mlm':
+			case rule
+			    ---------------------------------------------- mlm-here
+			    _: C' m x { FB'[x] } mm1 @ m = C' x { FB'[x] }
+			is
+			    c: contradiction by lemma methods-lookup-undefined-contradiction on mlm1, mum1
+			    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on c: end case analysis
+			end case
+			case rule
+			    mlm1': mm1 @ m = C' x { FB'[x] }
+			    --------------------------------------------------- mlm-there
+			    _: C11 m1 x1 { FB1[x1] } mm1 @ m = C' x { FB'[x] }
+			is
+			    _: C x { FB[x] } == C' x' { FB'[x'] } by induction hypothesis on om1, mlm1, mlm1'
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+lemma method-lookup-undefined-class:
+    forall clm: CT0; CT |- C1@m = C x { FB[x] }
+    forall cu: CT @ C1 undefined
+    exists contradiction .
+    _: contradiction by induction on clm:
+	case rule
+	    mlm: mm @ m = C x { FB[x] }
+	    -------------------------------------------------------------------- lm-here
+	    _: CT0; CT1 class C1 extends C1' { ff mm } |- C1 @ m = C x { FB[x] }
+	is
+	    _: contradiction by case analysis on cu:
+		case rule
+		    nen: n <> n
+		    _: CT1 @ n' undefined
+		    ------------------------------------------------- ctu-class
+		    _: CT1 class n extends C' { ff mm } @ n undefined
+		is
+		    _: contradiction by lemma ne-anti-reflexive on nen
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    _: mm @ m undefined
+	    _: CT0; CT0 |- C1' @ m = C x { FB[x] }
+	    -------------------------------------------------------------------- lm-inherit
+	    _: CT0; CT1 class C1 extends C1' { ff mm } |- C1 @ m = C x { FB[x] }
+	is
+	    _: contradiction by case analysis on cu:
+		case rule
+		    nen: n <> n
+		    _: CT1 @ n' undefined
+		    ------------------------------------------------- ctu-class
+		    _: CT1 class n extends C' { ff mm } @ n undefined
+		is
+		    _: contradiction by lemma ne-anti-reflexive on nen
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    clm1: CT0; CT1 |- C1 @ m = C x { FB [x] }
+	    --------------------------------------------------------------------- lm-there
+	    _: CT0; CT1 class C4 extends C3 { ff mm } |- C1 @ m = C x { FB[x] }
+	is
+	    _: contradiction by case analysis on cu:
+		case rule
+		    _: n <> n'
+		    cu1: CT1 @ n' undefined
+		    ------------------------------------------------- ctu-class
+		    _: CT1 class n extends C3 { ff mm } @ n' undefined
+		is
+		    _: contradiction by induction hypothesis on clm1, cu1
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+lemma method-lookup-undefined-contradiction:
+    forall lm: CT0; CT |- C@m = C'' x { FB[x] }
+    forall um: CT0; CT |- C@m undefined
+    exists contradiction .
+    _: contradiction by induction on lm:
+	case rule
+	    mlm: mm @ m = C'' x { FB[x] }
+	    ------------------------------------------------------------------- lm-here
+	    _: CT0; CT1 class C extends C' { ff mm } |- C @ m = C'' x { FB[x] }
+	is
+	    _: contradiction by case analysis on um:
+		case rule
+		    _: CT1 @ C undefined
+		    um1: CT0; CT0 |- C' @ m undefined
+		    mum: mm @ m undefined
+		    ----------------------------------------------------------- um-here
+		    _: CT0; CT1 class C extends C' { ff mm } |- C @ m undefined
+		is
+		    _: contradiction by lemma methods-lookup-undefined-contradiction on mlm, mum
+		end case
+		case rule
+		    nen: n <> n
+		    _: CT0; CT1 |- n @ m undefined
+		    ----------------------------------------------------------- um-there
+		    _: CT0; CT1 class n extends C' { ff mm } |- n @ m undefined
+		is
+		    _: contradiction by lemma ne-anti-reflexive on nen
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    _: mm @ m undefined
+	    lm1: CT0; CT0 |- C' @ m = C'' x { FB[x] }
+	    -------------------------------------------------------------------- lm-inherit
+	    _: CT0; CT1 class C extends C' { ff mm } |- C @ m = C'' x { FB[x] }
+	is
+	    _: contradiction by case analysis on um:
+		case rule
+		    _: CT1 @ C undefined
+		    um1: CT0; CT0 |- C' @ m undefined
+		    _: mm @ m undefined
+		    ----------------------------------------------------------- um-here
+		    _: CT0; CT1 class C extends C' { ff mm } |- C @ m undefined
+		is
+		    _: contradiction by induction hypothesis on lm1, um1
+		end case
+		case rule
+		    nen: n <> n
+		    _: CT0; CT1 |- n @ m undefined
+		    ----------------------------------------------------------- um-there
+		    _: CT0; CT1 class n extends C' { ff mm } |- n @ m undefined
+		is
+		    _: contradiction by lemma ne-anti-reflexive on nen
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    lm1: CT0; CT1 |- C @ m = C'' x { FB [x] }
+	    ----------------------------------------------------------------- lm-there
+	    _: CT0; CT1 class C1 extends C1' { ff mm } |- C @ m = C'' x { FB[x] }
+	    
+	is
+	    _: contradiction by case analysis on um:
+		case rule
+		    uc: CT1 @ C undefined
+		    um1: CT0; CT0 |- C' @ m undefined
+		    _: mm @ m undefined
+		    ------------------------------------------------------------ um-here
+		    _: CT0; CT1 class C extends C' { ff mm } |- C @ m undefined
+		is
+		    _: contradiction by lemma method-lookup-undefined-class on lm1, uc
+		end case
+		case rule
+		    _: n <> n'
+		    um1: CT0; CT1 |- n' @ m undefined
+		    -------------------------------------------------------- um-there
+		    _: CT0; CT1 class n extends C1' { ff mm } |- n' @ m undefined
+		is
+		    _: contradiction by induction hypothesis on lm1, um1
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+
+lemma lookup-method-unique :
+    forall o0: CT0 |- CT0 ok
+    forall o: CT0 |- CT ok
+    forall cml:  CT0; CT |- C1@m = C x { FB[x] }
+    forall cml': CT0; CT |- C1@m = C' x { FB'[x] }
+    exists C x { FB[x] } == C' x' { FB'[x'] } .
+    _: C x { FB[x] } == C' x' { FB'[x'] } by induction on cml:
+	case rule
+	    mlm: mm @ m = C x { FB[x] }
+	    -------------------------------------------------------------------- lm-here
+	    _: CT0; CT1 class C1 extends C1' { ff mm } |- C1 @ m = C x { FB[x] }
+	is
+	    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on cml':
+		case rule
+		    mlm': mm @ m = C' x { FB'[x] }
+		    ---------------------------------------------------------------------- lm-here
+		    _: CT0; CT1 class C1 extends C1' { ff mm } |- C1 @ m = C' x { FB'[x] }
+		is
+		    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on o:
+			case rule
+			    _: CT0 |- CT1 ok
+			    _: CT1 @ C1 undefined
+			    _: CT0; CT0 |- class C1' { ff' }
+			    _: ff' # ff = ff1
+			    om: CT0; C1 extends C1' |- mm ok
+			    ---------------------------------------------- O-Class
+			    _: CT0 |- CT1 class C1 extends C1' { ff mm } ok
+			is
+			    _: C x { FB[x] } == C' x' { FB'[x'] } by lemma methods-lookup-method-unique on om, mlm, mlm'
+			end case
+		    end case analysis
+		end case
+		case rule
+		    mum: mm @ m undefined
+		    _: CT0; CT0 |- C1' @ m = C' x { FB'[x] }
+		    ---------------------------------------------------------------------- lm-inherit
+		    _: CT0; CT1 class C1 extends C1' { ff mm } |- C1 @ m = C' x { FB'[x] }
+		is
+		    c: contradiction by lemma methods-lookup-undefined-contradiction on mlm,mum
+		    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on c: end case analysis
+		end case
+		case rule
+		    clm1: CT0; CT1 |- C1 @ m = C' x { FB' [x] }
+		    ---------------------------------------------------------------------- lm-there
+		    _: CT0; CT1 class C1 extends C1' { ff mm } |- C1 @ m = C' x { FB'[x] }
+		is
+		    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on o:
+			case rule
+			    o1: CT0 |- CT1 ok
+			    u1: CT1 @ C1 undefined
+			    _: CT0; CT0 |- class C1' { ff' }
+			    _: ff' # ff = ff1
+			    _: CT0; C1 extends C1' |- mm ok
+			    ---------------------------------------------- O-Class
+			    _: CT0 |- CT1 class C1 extends C1' { ff mm } ok
+			is
+			    c: contradiction by lemma method-lookup-undefined-class on clm1, u1
+			    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on c: end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    mum: mm @ m undefined
+	    cml1: CT0; CT0 |- C1' @ m = C x { FB[x] }
+	    -------------------------------------------------------------------- lm-inherit
+	    _: CT0; CT1 class C1 extends C1' { ff mm } |- C1 @ m = C x { FB[x] }
+	is
+	    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on cml':
+		case rule
+		    mlm': mm @ m = C' x { FB'[x] }
+		    ---------------------------------------------------------------------- lm-here
+		    _: CT0; CT1 class C1 extends C1' { ff mm } |- C1 @ m = C' x { FB'[x] }
+		is
+		    c: contradiction by lemma methods-lookup-undefined-contradiction on mlm',mum
+		    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on c: end case analysis
+		end case
+		case rule
+		    _: mm @ m undefined
+		    cml1': CT0; CT0 |- C1' @ m = C' x { FB'[x] }
+		    ---------------------------------------------------------------------- lm-inherit
+		    _: CT0; CT1 class C1 extends C1' { ff mm } |- C1 @ m = C' x { FB'[x] }
+		is
+		    _: C x { FB[x] } == C' x' { FB'[x'] } by induction hypothesis on o0, o0, cml1, cml1'
+		end case
+		case rule
+		    cml1: CT0; CT1 |- C1 @ m = C' x { FB' [x] }
+		    ---------------------------------------------------------------------- lm-there
+		    _: CT0; CT1 class C1 extends C1' { ff mm } |- C1 @ m = C' x { FB'[x] }
+		is
+		    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on o:
+			case rule
+			    o1: CT0 |- CT1 ok
+			    u1: CT1 @ C1 undefined
+			    _: CT0; CT0 |- class C1' { ff' }
+			    _: ff' # ff = ff1
+			    _: CT0; C1 extends C1' |- mm ok
+			    ---------------------------------------------- O-Class
+			    _: CT0 |- CT1 class C1 extends C1' { ff mm } ok
+			is
+			    c: contradiction by lemma method-lookup-undefined-class on cml1, u1
+			    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on c: end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+	
+	case rule
+	    cml1: CT0; CT1 |- C1 @ m = C x { FB [x] }
+	    --------------------------------------------------------------------- lm-there
+	    _: CT0; CT1 class C4 extends C3 { ff mm } |- C1 @ m = C x { FB[x] }
+	is
+	    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on cml':
+		case rule
+		    _: mm @ m = C' x { FB'[x] }
+		    ---------------------------------------------------------------------- lm-here
+		    _: CT0; CT1 class C1 extends C1' { ff mm } |- C1 @ m = C' x { FB'[x] }
+		is
+		    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on o:
+			case rule
+			    o1: CT0 |- CT1 ok
+			    u1: CT1 @ C1 undefined
+			    _: CT0; CT0 |- class C1' { ff' }
+			    _: ff' # ff = ff1
+			    _: CT0; C1 extends C1' |- mm ok
+			    ---------------------------------------------- O-Class
+			    _: CT0 |- CT1 class C1 extends C1' { ff mm } ok
+			is
+			    c: contradiction by lemma method-lookup-undefined-class on cml1, u1
+			    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on c: end case analysis
+			end case
+		    end case analysis
+		end case
+		case rule
+		    _: mm @ m undefined
+		    cml1': CT0; CT0 |- C1' @ m = C' x { FB'[x] }
+		    ---------------------------------------------------------------------- lm-inherit
+		    _: CT0; CT1 class C1 extends C1' { ff mm } |- C1 @ m = C' x { FB'[x] }
+		is
+		    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on o:
+			case rule
+			    o1: CT0 |- CT1 ok
+			    u1: CT1 @ C1 undefined
+			    _: CT0; CT0 |- class C1' { ff' }
+			    _: ff' # ff = ff1
+			    _: CT0; C1 extends C1' |- mm ok
+			    ---------------------------------------------- O-Class
+			    _: CT0 |- CT1 class C1 extends C1' { ff mm } ok
+			is
+			    c: contradiction by lemma method-lookup-undefined-class on cml1, u1
+			    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on c: end case analysis
+			end case
+		    end case analysis
+		end case
+		case rule
+		    cml1': CT0; CT1 |- C1 @ m = C' x { FB' [x] }
+		    ---------------------------------------------------------------------- lm-there
+		    _: CT0; CT1 class C4 extends C3 { ff mm } |- C1 @ m = C' x { FB'[x] }
+		is
+		    _: C x { FB[x] } == C' x' { FB'[x'] } by case analysis on o:
+			case rule
+			    o1: CT0 |- CT1 ok
+			    _: CT1 @ C4 undefined
+			    _: CT0; CT0 |- class C3 { ff' }
+			    _: ff' # ff = ff1
+			    _: CT0; C4 extends C3 |- mm ok
+			    ---------------------------------------------- O-Class
+			    _: CT0 |- CT1 class C4 extends C3 { ff mm } ok
+			is
+			    _: C x { FB[x] } == C' x' { FB'[x'] } by induction hypothesis on o0, o1, cml1, cml1'
+			end case
+		    end case analysis
+		end case		
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+lemma methods-check-method-total:
+    forall mm
+    forall m
+    exists mm @ m ? .
+    _: mm @ m ? by induction on mm:
+	case * is
+	    u: * @ m undefined by rule mum-none
+	    _: * @ m ? by rule mcm-no on u
+	end case
+	case C m' x { FB[x] } mm1 is
+	    c1: mm1 @ m ? by induction hypothesis on mm1,m
+	    _: mm @ m ? by case analysis on c1:
+		case rule
+		    l1: mm1 @ m = C1 x { FB1[x] }
+		    ------------------------------ mcm-yes
+		    _: mm1 @ m ?
+		is
+		    l: mm @ m = C1 x { FB1[x] } by rule mlm-there on l1
+		    _: mm @ m ? by rule mcm-yes on l
+		end case
+		case rule
+		    mum1: mm1 @ m undefined
+		    ----------------------- mcm-no
+		    _: mm1 @ m ?
+		is
+		    _: mm @ m ? by case analysis on m:
+			case n is
+			    _: mm @ m ? by case analysis on m':
+				case n' is
+				    e: n' ? n by lemma compare-total on n', n
+				    _: mm @ m ? by case analysis on e:
+					case rule
+					    ne: n' <> n
+					    ------------ compare-ne
+					    _: n' ? n
+					is
+					    u: mm @ m undefined by rule mum-some on ne,mum1
+					    _: mm @ m ? by rule mcm-no on u
+					end case
+					case rule
+					    ------------ compare-eq
+					    _: n ? n
+					is
+					    l: mm @ m = C x { FB[x] } by rule mlm-here
+					    _: mm @ m ? by rule mcm-yes on l
+					end case
+				    end case analysis
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+lemma method-args-type-unique:
+    forall mt: Gamma |- FB : { CC }
+    forall mt':Gamma |- FB : { CC' }
+    exists CC == CC' .
+    _: CC == CC' by induction on mt:
+	case rule
+	    ---------------------------------- mat-none
+	    _: Gamma |- } { return t;  : { $ }
+	is
+	    _: $ == CC' by case analysis on mt':
+		case rule
+		    ---------------------------------- mat-none
+		    _: Gamma |- } { return t;  : { $ }
+		is
+		    _: $ == $ by rule types-eq
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    mt1: Gamma, x:C |- FB1[x] : { CC1 }
+	    ------------------------------------ mat-some
+	    _:   Gamma |- C x, FB1[x] : { C, CC1 }
+	is
+	    _: (C,CC1) == CC' by case analysis on mt':
+		case rule
+		    mt1':Gamma, x:C |- FB1[x] : { CC1' }
+		    ---------------------------------------- mat-some
+		    _:   Gamma |- C x, FB1[x] : { C, CC1' }
+		is
+		    e1: CC1 == CC1' by induction hypothesis on mt1,mt1'
+		    _: C,CC1 == C,CC1' by case analysis on e1:
+			case rule
+			    ------------- types-eq
+			    _: CC1 == CC1
+			is
+			    _: C,CC1 == C,CC1 by rule types-eq
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+lemma methods-extend-lookup :
+    forall o: CT |- CT ok
+    forall om: CT; C2 extends C1 |- mm ok
+    forall clm: CT; CT |- C1@m = C1' x { FB1[x] }
+    forall mt: *, x:C1 |- FB1[x] : { CC }
+    forall mlm: mm @ m = C2' x { FB2[x] }
+    exists mm @ m = C1' x { FB2[x] } : C2 -> { CC } .
+    _ : mm @ m = C1' x { FB2[x] } : C2 -> { CC } by induction on om:
+	case rule
+	    ---------------------------- O-None
+	    _: CT; C2 extends C1 |- * ok
+	is
+	    _: mm @ m = C1' x { FB2[x] } : C2 -> { CC } by case analysis on mlm: end case analysis
+	end case
+
+	case rule
+	    om1: CT; C2 extends C1 |- mm1 ok
+	    mum1: mm1 @ m' undefined
+	    mt1: *, x:C2 |- FB[x] : { CC1 }
+	    ot1: CT |- C1 @ m' :? {CC1} -> C'
+	    _: CT; *, x:C2 |- FB[x] : C''
+	    _: CT |- C'' <: C'
+	    -------------------------------------------------- O-Method
+	    _: CT; C2 extends C1 |- C' m' x { FB[x] } mm1 ok
+	is
+	    _: mm @ m = C1' x { FB2[x] } : C2 -> { CC } by case analysis on mlm:
+		case rule
+		    mlm1: mm1 @ m = C2' x { FB2[x] }
+		    ------------------------------------------------ mlm-there
+		    _: C' m' x1 { FB[x1] } mm1 @ m = C2' x { FB2[x] }
+		is
+		    r1: mm1 @ m = C1' x { FB2[x] } : C2 -> { CC } by induction hypothesis on o, om1, clm, mt, mlm1
+		    mlm1': mm1 @ m = C1' x { FB2[x] } by inversion of mlr on r1
+		    mlm2': mm @ m = C1' x { FB2[x] } by rule mlm-there on mlm1'
+		    mt2: *, x: C2 |- FB2[x] : { CC } by inversion of mlr on r1
+		    _: mm @ m = C1' x { FB2[x] } : C2 -> { CC } by rule mlr on mlm2', mt2
+		end case
+		case rule
+		    --------------------------------------------- mlm-here
+		    _: C' m x { FB[x] } mm1 @ m = C' x { FB[x] }
+		is
+		    _: mm @ m = C1' x { FB[x] } : C2 -> { CC } by case analysis on ot1:
+			case rule
+			    cum: CT; CT |- C1 @ m undefined
+			    --------------------------------- oo-undefined
+			    _: CT |- C1 @ m :? { CC1 } -> C'
+			is
+			    c: contradiction by lemma method-lookup-undefined-contradiction on clm,cum
+			    _: mm @ m = C1' x { FB[x] } : C2 -> { CC } by case analysis on c: end case analysis
+			end case
+			case rule
+			    clm': CT; CT |- C1 @ m = C' x { FB3 [x] }
+			    mt': *, x:C1 |- FB3[x] : { CC1 }
+			    ---------------------------------------- oo-defined
+			    _: CT |- C1 @ m :? { CC1 } -> C'
+			is
+			    eqm: C1' x { FB1[x] } == C' x { FB3[x] } by lemma lookup-method-unique on o,o,clm,clm'
+			    _: mm @ m = C1' x { FB[x] } : C2 -> { CC } by case analysis on eqm:
+				case rule
+				    ------------------------------------- method-eq
+				    _: C' x { FB1[x] } == C' x { FB1[x] } 
+				is
+				    ee: CC == CC1 by lemma method-args-type-unique on mt,mt'
+				    mt'': *, x:C2 |- FB[x] : { CC } by case analysis on ee:
+					case rule
+					    ----------- types-eq
+					    _: CC == CC
+					is
+					    _: *, x:C2 |- FB[x] : { CC } by mt1
+					end case
+				    end case analysis
+				    _: mm @ m = C' x { FB[x] } : C2 -> { CC } by rule mlr on mlm, mt''
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+lemma class-method-extends-lookup:
+    forall o0: CT0 |- CT0 ok
+    forall o:  CT0 |- CT ok
+    forall ml: CT0; CT0 |- C1@m = C x { FB[x] }
+    forall mt: *, x:C1 |- FB[x] : { CC }
+    forall e:  CT |- C2 extends C1
+    exists CT0; CT |- C2@m = C x { FB1[x] } : { CC } .
+    _ : CT0; CT |- C2@m = C x { FB1[x] } : { CC } by induction on e:
+	case rule
+	    -------------------------------------------------------- ls-here
+	    _: CT1 class C2 extends C1 { ff2 mm2 } |- C2 extends C1
+	is
+	    _: CT0; CT |- C2@m = C x { FB1[x] } : { CC } by case analysis on o:
+		case rule
+		    o1: CT0 |- CT1 ok
+		    _: CT1 @ C2 undefined
+		    _: CT0; CT0 |- class C1 { ff1 }
+		    _: ff1 # ff2 = ff3
+		    om: CT0; C2 extends C1 |- mm2 ok
+		    ------------------------------------------------ O-Class
+		    _: CT0 |- CT1 class C2 extends C1 { ff2 mm2 } ok
+		is
+		    c: mm2 @ m ? by lemma methods-check-method-total on mm2,m
+		    _: CT0; CT |- C2@m = C x { FB1[x] } : { CC } by case analysis on c:
+			case rule
+			    mum: mm2 @ m undefined
+			    ----------------------- mcm-no
+			    _: mm2 @ m ?
+			is
+			    ml2: CT0; CT |- C2@m = C x { FB[x] } by rule lm-inherit on mum, ml
+			    mt2:  *, x:C2 |- FB[x] : { CC } by lemma this-binding-irrelevant on mt, C2
+			    _: CT0; CT |- C2@m = C x { FB1[x] } : { CC } by rule cmlr on ml2,mt2
+			end case
+			case rule
+			    mlm': mm2 @ m = C' x { FB1[x] }
+			    ------------------------------ mcm-yes
+			    _: mm2 @ m ?
+			is
+			    r: mm2 @ m = C x { FB1[x] } : C2 -> { CC } by lemma methods-extend-lookup on o0,om,ml,mt,mlm'
+			    mlm: mm2 @ m = C x { FB1[x] } by inversion of mlr on r
+			    clm: CT0; CT |- C2@m = C x { FB1[x] } by rule lm-here on mlm
+			    mt2: *, x:C2 |- FB1[x] : { CC } by inversion of mlr on r
+			    _: CT0; CT |- C2@m = C x { FB1[x] } : { CC } by rule cmlr on clm, mt2
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    e1: CT1 |- C2 extends C1
+	    ------------------------------------------------------- ls-there
+	    _: CT1 class C4 extends C3 { ff4 mm4 } |- C2 extends C1
+	is
+	    _: CT0; CT |- C2@m = C x { FB1[x] } : { CC } by case analysis on o:
+		case rule
+		    o1: CT0 |- CT1 ok
+		    _: CT1 @ C4 undefined
+		    _: CT0; CT0 |- class C3 { ff3 }
+		    _: ff3 # ff4 = ff5
+		    _: CT0; C4 extends C3 |- mm4 ok
+		    ------------------------------------------------ O-Class
+		    _: CT0 |- CT1 class C4 extends C3 { ff4 mm4 } ok
+		is
+		    r1:  CT0; CT1 |- C2@m = C x { FB1[x] } : { CC } by induction hypothesis on o0,o1,ml,mt,e1
+		    cml1:CT0; CT1 |- C2@m = C x { FB1[x] } by inversion of cmlr on r1
+		    mt2: *, x:C2 |- FB1[x] : { CC } by inversion of cmlr on r1
+		    cml: CT0; CT  |- C2@m = C x { FB1[x] } by rule lm-there on cml1
+		    _: CT0; CT |- C2@m = C x { FB1[x] } : { CC } by rule cmlr on cml,mt2
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+lemma class-method-subtype-lookup:
+    forall o: CT |- CT ok
+    forall ml: CT; CT |- C1@m = C x { FB[x] }
+    forall mt: *, x:C1 |- FB[x] : { CC }
+    forall st: CT |- C2 <: C1
+    exists CT; CT |- C2@m = C x { FB1[x] } : { CC } .
+    _: CT; CT |- C2@m = C x { FB1[x] } : { CC } by unproved
+    // EXTRA (moderate)
+end lemma
+
+
+
+lemma can-project-helper1:
+    forall fft: ff: CC'
+    forall dtt: CT; * |- tt : CC
+    forall ss: CT |- CC <: CC'
+    forall ffs: ff @ f : C
+    exists tt: ff @ f = t .
+    _: tt : ff @ f = t by induction on ffs:
+	case rule
+	    fu: ff1 @ f undefined
+	    ------------------- ftl-here
+	    _: C f; ff1 @ f : C
+	is
+	    _: tt : ff @ f = t by case analysis on fft:
+		case rule
+		    _: ff1 : CC1'
+		    -------------------- ft-some
+		    _: C f; ff1 : C,CC1'
+		is
+		    _: tt : ff @ f = t by case analysis on ss:
+			case rule
+			    _: CT |- C' <: C
+			    _: CT |- CC1 <: CC1'
+			    ----------------------------- S-Some
+			    _: CT |- (C',CC1) <: (C,CC1')
+			is
+			    _: tt : ff @ f = t by case analysis on dtt:
+				case rule
+				    _: CT; * |- t : C'
+				    _: CT; * |- tt1 : CC1
+				    ------------------------------ T-Some
+				    _: CT; * |- (t,tt1) : (C',CC1)
+				is
+				    _: tt : ff @ f = t by rule fl-here on fu
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    ffs1: ff1 @ f : C
+	    --------------------- ftl-there
+	    _: C1 f1; ff1 @ f : C
+	is
+	    _: tt : ff @ f = t by case analysis on fft:
+		case rule
+		    fft1: ff1 : CC1'
+		    -------------------- ft-some
+		    _: C1 f1; ff1 : C1,CC1'
+		is
+		    _: tt : ff @ f = t by case analysis on ss:
+			case rule
+			    _: CT |- C1' <: C1
+			    ss1: CT |- CC1 <: CC1'
+			    ----------------------------- S-Some
+			    _: CT |- (C1',CC1) <: (C1,CC1')
+			is
+			    _: tt : ff @ f = t by case analysis on dtt:
+				case rule
+				    _: CT; * |- t1 : C1'
+				    dtt1: CT; * |- tt1 : CC1
+				    ------------------------------- T-Some
+				    _: CT; * |- (t1,tt1) : (C1',CC1)
+				is
+				    fl1: tt1 : ff1 @ f = t 
+					    by induction hypothesis on fft1,dtt1,ss1,ffs1
+				    _: tt : ff @ f = t by rule fl-there on fl1
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+lemma can-project:
+    forall o: CT |- CT ok
+    forall cfl: CT; CT |- class C1 {ff}
+    forall cflp: CT; CT |- class C1 {ff1}
+    forall fftp: ff1 : CC'
+    forall dtt: CT; * |- tt : CC
+    forall ss: CT |- CC <: CC' 
+    forall ffs: ff @ f : C
+    exists tt : ff @ f = t .
+    e: ff == ff1 by lemma field-lookup-unique on o, o, cfl, cflp    
+    _: tt : ff @ f = t by case analysis on e:
+	case rule
+	    ----------- fields-eq
+	    _: ff == ff
+	is
+	    _: tt : ff @ f = t by lemma can-project-helper1 on fftp, dtt, ss, ffs
+	end case
+    end case analysis
+end lemma
+
+lemma field-lookup-undefined-contradiction:
+    forall fl: ff @ f : C
+    forall fu: ff @ f undefined
+    exists contradiction .
+    _: contradiction by induction on fl:
+	case rule
+	    _: ff1 @ f undefined
+	    -------------------- ftl-here
+	    _: C f; ff1 @ f : C
+	is
+	    _: contradiction by case analysis on fu:
+		case rule
+		    nen: n <> n
+		    _: ff1 @ n undefined
+		    -------------------------------- fuf-some
+		    _: C n; ff1 @ n undefined
+		is
+		    _: contradiction by lemma ne-anti-reflexive on nen
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    fl1: ff1 @ f : C
+	    ---------------------- ftl-there
+	    _: C1 f1; ff1 @ f : C
+	is
+	    _: contradiction by case analysis on fu:
+		case rule
+		    _: n <> n'
+		    fu1: ff1 @ n' undefined
+		    -------------------------------- fuf-some
+		    _: C1 n; ff1 @ n' undefined
+		is
+		    _: contradiction by induction hypothesis on fl1,fu1
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+lemma field-lookup-implies-type-lookup:
+    forall fl: tt : ff @ f = t
+    exists ff @ f : C .
+    _: ff @ f : C by induction on fl:
+	case rule
+	    fu: ff1 @ f undefined
+	    ----------------------------- fl-here
+	    _: t , tt1 : C f; ff1 @ f = t
+	is
+	    _: (C f; ff1) @ f : C by rule ftl-here on fu
+	end case
+
+	case rule
+	    fl1: tt1 : ff1 @ f = t
+	    -------------------------------- fl-there
+	    _: t1 , tt1 : C1 f1; ff1 @ f = t
+	is
+	    r: ff1 @ f : C by induction hypothesis on fl1
+	    _: (C1 f1; ff1) @ f : C by rule ftl-there on r
+	end case
+    end induction
+end lemma
+
+lemma select-gets-subtype :
+    forall fft: ff : CC
+    forall dtt: CT; * |- tt : CC'
+    forall ss:  CT |- CC' <: CC
+    forall ffs: ff @ f : C
+    forall fff: tt : ff @ f = t
+    exists CT; * |- t : C' <: C .
+    _: CT; * |- t : C' <: C by induction on ffs:
+	case rule
+	    u1: ff1 @ f undefined
+	    --------------------- ftl-here
+	    _: C f; ff1 @ f : C
+	is
+	    _: CT; * |- t : C' <: C by case analysis on fff:
+		case rule
+		    fff1: tt1 : ff1 @ f = t
+		    ----------------------------- fl-there
+		    _: t1, tt1 : C f; ff1 @ f = t
+		is
+		    fl1: ff1 @ f : C' by lemma field-lookup-implies-type-lookup on fff1
+		    c: contradiction by lemma field-lookup-undefined-contradiction on fl1,u1
+		    _: CT; * |- t : C' <: C by case analysis on c: end case analysis
+		end case
+		case rule
+		    _: ff1 @ f undefined
+		    ---------------------------- fl-here
+		    _: t , tt1 : C f; ff1 @ f = t
+		is
+		    _: CT; * |- t : C' <: C by case analysis on fft:
+			case rule
+			    _: ff1 : CC1
+			    -------------------- ft-some
+			    _: C f; ff1 : C,CC1
+			is
+			    _: CT; * |- t : C' <: C by case analysis on ss:
+				case rule
+				    s1: CT |- C' <: C
+				    ss1: CT |- CC1' <: CC1
+				    ----------------------------- S-Some
+				    _: CT |- (C',CC1') <: (C,CC1)
+				is
+				    dt: CT; * |- t : C' by inversion of T-Some on dtt
+				    _:  CT; * |- t : C' <: C by rule better on dt,s1
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    ffs1: ff1 @ f : C
+	    ------------------------------- ftl-there
+	    _: C1 f1; ff1 @ f : C
+	is
+	    _: CT; * |- t : C' <: C by case analysis on fff:
+		case rule
+		    u1: ff1 @ f undefined
+		    ---------------------------- fl-here
+		    _: t , tt1 : C1 f; ff1 @ f = t
+		is
+		    c: contradiction by lemma field-lookup-undefined-contradiction on ffs1, u1
+		    _: CT; * |- t : C' <: C by case analysis on c: end case analysis
+		end case
+		case rule
+		    fff1: tt1 : ff1 @ f = t
+		    ----------------------------- fl-there
+		    _: t1, tt1 : C1 f1; ff1 @ f = t
+		is
+		    _: CT; * |- t : C' <: C by case analysis on fft:
+			case rule
+			    fft1: ff1 : CC1
+			    ----------------------- ft-some
+			    _: C1 f1; ff1 : C1,CC1
+			is
+			    _: CT; * |- t : C' <: C by case analysis on ss:
+				case rule
+				    s1: CT |- C1' <: C1
+				    ss1: CT |- CC1' <: CC1
+				    ------------------------------- S-Some
+				    _: CT |- (C1',CC1') <: (C1,CC1)
+				is
+				    dtt1: CT; * |- tt1 : CC1' by inversion of T-Some on dtt
+				    _:  CT; * |- t : C' <: C by induction hypothesis on fft1,dtt1,ss1,ffs1,fff1
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+
+lemma can-sub-params :
+    forall mt: * |- FB : { CC' }
+    forall dtt:CT; * |- tt : CC
+    forall ss: CT |- CC <: CC'
+    exists FB tt = t .
+    _: FB tt = t by unproved
+    // EXTRA (moderate)
+end lemma
+
+
+
+/*************** TYPE SOUNDNESS ************/
+
+
+lemma canonical-forms:
+    forall dt: CT; Gamma |- t : C
+    forall v: t value
+    exists CT; Gamma |- t value : C .
+    _: CT; Gamma |- t value : C by case analysis on v:
+	case rule
+	    vv: tt value
+	    ------------------- new-value
+	    _: new C'{tt} value
+	is
+	    _: CT; Gamma |- new C'{tt} value : C by case analysis on dt:
+		case rule
+		    cfl: CT; CT |- class C {ff}
+		    dtt: CT; Gamma |- tt : CC1
+		    fts: ff : CC2
+		    sub: CT |- CC1 <: CC2
+		    ----------------------------------- T-New
+		    _: CT; Gamma |- new C{tt} : C
+		is
+		    _: CT; Gamma |- new C{tt} value : C
+			    by rule canonical-new on cfl, dtt, fts, sub, vv
+		end case
+		case rule
+		    vv: new C'{tt}:C in Gamma
+		    -------------------------------- T-Var
+		    _: CT; Gamma |- new C'{tt} : C
+		is
+		    _: CT; Gamma |- new C'{tt} value : C
+			    by case analysis on vv: end case analysis
+		end case		
+	    end case analysis
+	end case
+    end case analysis
+end lemma
+
+
+lemma subtypes-reflexive :
+    forall CT
+    forall CC
+    exists CT |- CC <: CC .
+    _: CT |- CC <: CC by induction on CC:
+		case $ is
+			_: CT |- $ <: $ by rule S-None
+		end case
+
+		case C, CC' is
+			sc: CT |- C <: C by rule S-Refl
+			scc: CT |- CC' <: CC' by induction hypothesis on CT, CC'
+			_: CT |- C,CC' <: C,CC' by rule S-Some on sc, scc
+		end case
+	end induction
+end lemma
+
+lemma subtypes-transitive:
+    forall ss1: CT |- CC1 <: CC2
+    forall ss2: CT |- CC2 <: CC3
+    exists CT |- CC1 <: CC3.
+    _: CT |- CC1 <: CC3 by induction on ss1:
+		case rule
+			--------------- S-None
+			_: CT |- $ <: $
+		is
+			_: CT |- $ <: CC3 by case analysis on ss2:
+				case rule
+					--------------- S-None
+					_: CT |- $ <: $
+				is
+					_: CT |- $ <: $ by rule S-None
+				end case
+			end case analysis
+		end case
+
+		case rule
+			sc1:  CT |- C1' <: C2'
+			scc1: CT |- CC1' <: CC2'
+			----------------------------- S-Some
+			_: CT |- C1',CC1' <: C2',CC2'
+		is
+			_: CT |- C1',CC1' <: CC3 by case analysis on ss2:
+				case rule
+					sc2:  CT |- C2' <: C3'
+					scc2: CT |- CC2' <: CC3'
+					----------------------------- S-Some
+					_: CT |- C2',CC2' <: C3',CC3'
+				is
+					sc:  CT |- C1' <: C3' by rule S-Trans on sc1, sc2
+					scc: CT |- CC1' <: CC3' by induction hypothesis on scc1, scc2
+					_:   CT |- CC1 <: CC3 by rule S-Some on sc, scc
+				end case
+			end case analysis
+		end case
+	end induction
+end lemma
+
+
+lemma context-subtype:
+    forall o: CT |- CT ok
+    forall dt1: CT; Gamma, x:C |- t1[x] : C'
+    forall s2: CT |- C2 <: C
+    exists CT; Gamma, x : C2 |- t1[x] : C'' <: C' .
+    _: CT; Gamma, x:C2 |- t1[x] : C'' <: C' by induction on dt1:
+	case rule
+	    v: t1[x]:C' in (Gamma, x:C)
+	    ---------------------------------- T-Var
+	    _: CT; Gamma, x:C |- t1[x] : C'
+	is
+	    _: CT; Gamma, x:C2 |- t1[x] : C'' <: C' by case analysis on v:
+		case rule
+		    ---------------------- var
+		    _: x:C in (Gamma, x:C)
+		is
+		    v2: x:C2 in (Gamma, x:C2) by rule var
+		    dt2: CT; Gamma, x:C2 |- x : C2 by rule T-Var on v2
+		    _: CT; Gamma, x:C2 |- x : C2 <: C' by rule better on dt2,s2
+		end case
+		case rule
+		    -------------------------------- var
+		    _: x':C' in (Gamma', x':C', x:C)
+		is
+		    v': x':C' in (Gamma', x:C2, x':C') by rule var
+		    dt': CT; Gamma', x:C2, x':C' |- x':C' by rule T-Var on v'
+		    s': CT |- C' <: C' by rule S-Refl
+		    dt2: CT; Gamma', x':C', x:C2 |- x':C' by exchange on dt'
+		    _: CT; Gamma', x':C', x:C2 |- x':C' <: C' by rule better on dt2,s'
+		end case
+	    end case analysis
+	end case
+	
+	case rule
+	    fl:  CT; CT |- class C' {ff}
+	    dtt: CT; Gamma, x:C |- tt[x] : CC1
+	    ft:  ff : CC2
+	    ss:  CT |- CC1 <: CC2
+	    -------------------------------------------- T-New
+	    _:   CT; Gamma, x:C |- new C'{tt[x]} : C'
+	is
+	    btt': CT; Gamma, x:C2 |- tt[x] : CC0 <: CC1 by lemma context-subtypes on o,dtt,s2
+	    dt: CT; Gamma, x:C2 |- new C'{tt[x]} : C' by case analysis on btt':
+		case rule
+		    dtt': CT; Gamma, x:C2 |- tt[x] : CC0
+		    ss0: CT |- CC0 <: CC1
+		    ---------------------------------------- betters
+		     _: CT; Gamma, x:C2 |- tt[x] : CC0 <: CC1
+		is
+		    ss012: CT |- CC0 <: CC2 by lemma subtypes-transitive on ss0, ss
+		    _: CT; Gamma, x:C2 |- new C'{tt[x]} : C' by rule T-New on fl,dtt',ft,ss012
+		end case
+	    end case analysis
+	    s': CT |- C' <: C' by rule S-Refl
+	    _: CT; Gamma, x:C2 |- new C'{tt[x]} : C' <: C' by rule better on dt, s'
+	end case
+
+	case rule
+	    dt: CT; Gamma, x : C |- t[x] : C11
+	    fl: CT; CT |- class C11 {ff}
+	    fa: ff @ f : C'
+	    ---------------------------------------- T-Field
+	    _: CT; Gamma, x : C |- t[x] @ f : C'
+	is
+	    bt: CT; Gamma, x:C2 |- t[x] : C00 <: C11 by lemma context-subtype on o,dt,s2
+	    _: CT; Gamma, x:C2 |- t[x]@f : C' <: C' by case analysis on bt:
+		case rule 
+		    dt': CT; Gamma, x:C2 |- t[x] : C00
+		    s': CT |- C00 <: C11
+		    -------------------------------------- better
+		    _: CT; Gamma, x:C2 |- t[x] : C00 <: C11		    
+		is
+		    cflr': CT; CT |- class C00 {ff'} /\ ff' @ f : C' by lemma class-field-subtype-lookup on o,fl,fa,s'
+		    _: CT; Gamma, x:C2 |- t[x]@f : C' <: C' by case analysis on cflr':
+			case rule
+			    fl': CT; CT |- class C00 {ff'}
+			    fa': ff' @ f : C' 
+			    ---------------------------------------- cflr
+			    _: CT; CT |- class C00 {ff'} /\ ff' @ f : C' 
+			is
+			    d': CT; Gamma, x:C2 |- t[x]@f : C' by rule T-Field on dt',fl',fa'
+			    s': CT |- C' <: C' by rule S-Refl
+			    _: CT; Gamma, x:C2 |- t[x]@f : C' <: C' by rule better on d',s'
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    dt:  CT; Gamma, x:C |- t[x] : C1
+	    dtt: CT; Gamma, x:C |- tt[x] : CC
+	    ml: CT; CT |- C1@m = C' x { FB[x] }
+	    mt: *, x:C1 |- FB[x] : { CC' }
+	    ss: CT |- CC <: CC'
+	    ------------------------------------------- T-Invoke
+	    _: CT; Gamma, x:C |- t[x]@m{tt[x]} : C'
+	is
+	    bt:  CT; Gamma, x:C2 |- t[x] : C1' <: C1 by lemma context-subtype on o,dt,s2
+	    dt': CT; Gamma, x:C2 |- t[x] : C1' by inversion of better on bt
+	    s1: CT |- C1' <: C1 by inversion of better on bt
+	    cmlr: CT; CT |- C1'@m = C' x { FB'[x] } : { CC' } 
+		    by lemma class-method-subtype-lookup on o,ml,mt,s1
+	    ml': CT; CT |- C1'@m = C' x { FB'[x] } by inversion of cmlr on cmlr
+	    mt': *, x:C1' |- FB'[x] : { CC' } by inversion of cmlr on cmlr
+	    btt: CT; Gamma, x:C2 |- tt[x] : CC'' <: CC by lemma context-subtypes on o,dtt,s2
+	    dtt': CT; Gamma, x:C2 |- tt[x] : CC'' by inversion of betters on btt
+	    ss'': CT |- CC'' <: CC by inversion of betters on btt
+	    ss2: CT |- CC'' <: CC' by lemma subtypes-transitive on ss'',ss
+	    dt1': CT; Gamma, x:C2 |- t[x]@m{tt[x]} : C' by rule T-Invoke on dt',dtt',ml',mt',ss2 
+	    s': CT |- C' <: C' by rule S-Refl
+	    _: CT; Gamma, x:C2 |- t[x]@m{tt[x]} : C' <: C' by rule better on dt1',s'
+	end case
+
+	case rule
+	    dt: CT; Gamma, x:C |- t[x] : C1
+	    ----------------------------------- T-Cast
+	    _: CT; Gamma, x:C |- (C')t[x] : C'
+	is
+	    bt: CT; Gamma, x:C2 |- t[x] : C''' <: C1 by lemma context-subtype on o,dt,s2
+	    dt': CT; Gamma, x:C2 |- t[x] : C''' by inversion of better on bt
+	    dt1': CT; Gamma, x:C2 |- (C')t[x] : C' by rule T-Cast on dt'
+	    s': CT |- C' <: C' by rule S-Refl
+	    _:  CT; Gamma, x:C2 |- (C')t[x] : C' <: C' by rule better on dt1', s'
+	end case
+    end induction
+end lemma
+and
+lemma context-subtypes:
+    forall o: CT |- CT ok
+    forall dtt1: CT; Gamma, x:C1 |- tt1[x] : CC'
+    forall s2: CT |- C2 <: C1
+    exists CT; Gamma, x:C2 |- tt1[x] : CC'' <: CC' .
+    _: CT; Gamma, x:C2 |- tt1[x] : CC'' <: CC' by induction on dtt1:
+	case rule
+	    ------------------------------ T-None
+	    _: CT; Gamma, x:C |- $ : $
+	is
+	    dt: CT; Gamma, x:C2 |- $ : $ by rule T-None
+	    ss: CT |- $ <: $ by rule S-None
+	    _: CT; Gamma, x:C2 |- $ : $ <: $ by rule betters on dt,ss
+	end case
+	case rule
+	    dt:  CT; Gamma, x:C1 |- t[x]  : C
+	    dtt: CT; Gamma, x:C1 |- tt[x] : CC
+	    ---------------------------------------------- T-Some
+	    _:   CT; Gamma, x:C1 |- t[x],tt[x] : C,CC
+	is
+	    bt:  CT; Gamma, x:C2 |- t[x]  : C' <: C by lemma context-subtype on o, dt, s2
+	    btt: CT; Gamma, x:C2 |- tt[x] : CC1' <: CC by lemma context-subtypes on o, dtt, s2
+	    _: CT; Gamma, x:C2 |- t[x],tt[x]: (C',CC1') <: (C,CC) by case analysis on bt:
+		case rule
+		    dt: CT; Gamma, x:C2 |- t1[x] : C'
+		    s1: CT |- C' <: C
+		    ---------------------------------------- better
+		    bt: CT; Gamma, x:C2 |- t1[x] : C' <: C
+		is
+		    _: CT; Gamma, x:C2 |- t[x],tt[x]: (C',CC1') <: (C,CC) by case analysis on btt:
+			case rule
+			    dtt: CT; Gamma, x:C2 |- tt[x] : CC1'
+			    ss: CT |- CC1' <: CC
+			    ----------------------------------------- betters
+			    btt: CT; Gamma, x:C2 |- tt[x] : CC1' <: CC
+			is
+			    dtt': CT; Gamma, x:C2 |- t[x],tt[x]: (C',CC1') by rule T-Some on dt,dtt
+			    ss': CT |- (C',CC1') <: (C,CC) by rule S-Some on s1,ss
+			    _:  CT; Gamma, x:C2 |- t[x],tt[x]: (C',CC1') <: (C,CC)
+				    by rule betters on dtt', ss'
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+
+lemma methods-body-type:
+    forall om: CT; C1 extends C1' |- mm ok
+    forall mlm: mm @ m = C x { FB[x] }
+    exists CT; *, x:C1 |- FB[x] : C' <: C .
+    _: CT; *, x:C1 |- FB[x] : C' <: C by unproved
+    // EXTRA: Moderate
+end lemma
+
+
+lemma method-subtype:
+    forall o: CT |- CT ok
+    forall mt: CT; Gamma, x:C1 |- FB[x] : C
+    forall s2: CT |- C2 <: C1
+    exists     CT; Gamma, x:C2 |- FB[x] : C' <: C.
+    _: CT; Gamma, x:C2 |- FB[x] : C' <: C by induction on mt:
+	case rule
+	    mt1: CT; Gamma, x : C1 |- t1[x] : C
+	    ------------------------------------------------- T-Return
+	    _: CT; Gamma, x : C1 |- } { return t1[x]; : C
+	is
+	    bt1:  CT; Gamma, x:C2 |- t1[x] : C' <: C by lemma context-subtype on o,mt1,s2
+	    mt1': CT; Gamma, x:C2 |- t1[x] : C' by inversion of better on bt1
+	    s1': CT |- C' <: C by inversion of better on bt1
+	    mt': CT; Gamma, x:C2 |- } { return t1[x]; : C' by rule T-Return on mt1'
+	    _:   CT; Gamma, x:C2 |- } { return t1[x]; : C' <: C by rule betterm on mt',s1'
+	end case
+	case rule
+	    mt1: CT; Gamma, x:C1, x':C1' |- FB1[x][x'] : C
+	    -------------------------------------------------- T-Formal
+	    _:   CT; Gamma, x:C1 |- C1' x', FB1[x][x'] : C
+	is
+	    mt1x: CT; Gamma, x':C1', x:C1 |- FB1[x][x'] : C by exchange on mt1
+	    bt1:  CT; Gamma, x':C1', x:C2 |- FB1[x][x'] : C' <: C by induction hypothesis on o,mt1x,s2
+	    mt1': CT; Gamma, x':C1', x:C2 |- FB1[x][x'] : C' by inversion of betterm on bt1
+	    s1': CT |- C' <: C by inversion of betterm on bt1
+	    mt1x':CT; Gamma, x:C2, x':C1' |- FB1[x][x'] : C' by exchange on mt1'
+	    mt':  CT; Gamma, x:C2 |- C1' x', FB1[x][x'] : C' by rule T-Formal on mt1x'
+	    _:    CT; Gamma, x:C2 |- C1' x', FB1[x][x'] : C' <: C by rule betterm on mt',s1'
+	end case
+    end induction
+end lemma
+
+
+lemma method-body-typed :
+    forall o0: CT0 |- CT0 ok
+    forall o: CT0 |- CT ok
+    forall i: CT0 :> CT
+    forall cml: CT0; CT |- C1@m = C x { FB[x] }
+    exists CT0; *, x:C1 |- FB[x] : C' <: C .
+    _: CT0; *, x:C1 |- FB[x] : C' <: C by unproved
+    // EXTRA: difficult
+end lemma
+
+
+lemma subst:
+    forall dt1: CT; Gamma, x:C |- t1[x] : C'
+    forall dt2: CT; Gamma |- t2 : C
+    exists CT; Gamma |- t1[t2] : C'.
+    _: CT; Gamma |- t1[t2] : C' by induction on dt1:
+	case rule
+	    v: t1[x]:C' in (Gamma, x:C)
+	    ---------------------------------- T-Var
+	    _: CT; Gamma, x:C |- t1[x] : C'
+	is
+	    _: CT; Gamma |- t1[t2] : C' by case analysis on v:
+		case rule
+		    ---------------------- var
+		    _: x:C in (Gamma, x:C)
+		is
+		    _: CT; Gamma |- t2 : C by dt2
+		end case
+		case rule
+		    -------------------------------- var
+		    _: x':C' in (Gamma', x':C', x:C)
+		is
+		    v': x':C' in (Gamma',x':C') by rule var
+		    dt: CT; Gamma', x':C' |- x':C' by rule T-Var on v'
+		end case
+	    end case analysis
+	end case
+	
+	case rule
+	    fl:  CT; CT |- class C' {ff}
+	    dtt: CT; Gamma, x:C |- tt[x] : CC1
+	    ft:  ff : CC2
+	    ss:  CT |- CC1 <: CC2
+	    -------------------------------------------- T-New
+	    _:   CT; Gamma, x:C |- new C'{tt[x]} : C'
+	is
+	    dtt': CT; Gamma |- tt[t2] : CC1 by lemma substs on dtt,dt2
+	    _: CT; Gamma |- new C'{tt[t2]} : C' by rule T-New on fl,dtt',ft,ss
+	end case
+
+	case rule
+	    dt: CT; Gamma, x : C |- t[x] : C11
+	    fl: CT; CT |- class C11 {ff}
+	    fa: ff @ f : C'
+	    ---------------------------------------- T-Field
+	    _: CT; Gamma, x : C |- t[x] @ f : C'
+	is
+	    dt': CT; Gamma |- t[t2] : C11 by lemma subst on dt,dt2
+	    d': CT; Gamma |- t[t2]@f : C' by rule T-Field on dt',fl,fa
+	end case
+
+	case rule
+	    dt:  CT; Gamma, x:C |- t[x] : C1
+	    dtt: CT; Gamma, x:C |- tt[x] : CC
+	    ml: CT; CT |- C1@m = C' x { FB[x] }
+	    mt: *, x:C1 |- FB[x] : { CC' }
+	    ss: CT |- CC <: CC'
+	    ------------------------------------------- T-Invoke
+	    _: CT; Gamma, x:C |- t[x]@m{tt[x]} : C'
+	is
+	    dt':  CT; Gamma |- t[t2] : C1 by lemma subst on dt,dt2
+	    dtt': CT; Gamma |- tt[t2] : CC by lemma substs on dtt,dt2
+	    dt1': CT; Gamma |- t[t2]@m{tt[t2]} : C' by rule T-Invoke on dt',dtt',ml,mt,ss
+	end case
+
+	case rule
+	    dt: CT; Gamma, x:C |- t[x] : C1
+	    ----------------------------------- T-Cast
+	    _: CT; Gamma, x:C |- (C')t[x] : C'
+	is
+	    dt': CT; Gamma |- t[t2] : C1 by lemma subst on dt,dt2
+	    dt1': CT; Gamma |- (C')t[t2] : C' by rule T-Cast on dt'
+	end case
+    end induction
+end lemma
+and
+lemma substs:
+    forall dtt1: CT; Gamma, x:C1 |- tt1[x] : CC'
+    forall dt2: CT; Gamma |- t2 : C1
+    exists CT; Gamma |- tt1[t2] : CC' .
+    _: CT; Gamma |- tt1[t2] : CC' by induction on dtt1:
+	case rule
+	    ------------------------------ T-None
+	    _: CT; Gamma, x:C |- $ : $
+	is
+	    dt: CT; Gamma |- $ : $ by rule T-None
+	end case
+	case rule
+	    dt:  CT; Gamma, x:C1 |- t[x]  : C
+	    dtt: CT; Gamma, x:C1 |- tt[x] : CC
+	    ---------------------------------------------- T-Some
+	    _:   CT; Gamma, x:C1 |- t[x],tt[x] : C,CC
+	is
+	    dt':  CT; Gamma |- t[t2]  : C by lemma subst on dt, dt2
+	    dtt': CT; Gamma |- tt[t2] : CC by lemma substs on dtt, dt2
+	    _: CT; Gamma |- t[t2],tt[t2]: (C,CC) by rule T-Some on dt',dtt'
+	end case
+    end induction
+end lemma
+
+
+lemma subst-subtype:
+    forall o: CT |- CT ok
+    forall dt1: CT; Gamma, x:C |- t1[x] : C'
+    forall dt2: CT; Gamma |- t2 : C2
+    forall s2: CT |- C2 <: C
+    exists CT; Gamma |- t1[t2] : C'' <: C' .
+    b1: CT; Gamma, x:C2 |- t1[x] : C'' <: C' by lemma context-subtype on o,dt1,s2
+    dt1': CT; Gamma, x:C2 |- t1[x] : C'' by inversion of better on b1
+    s1: CT |- C'' <: C' by inversion of better on b1
+    dt: CT; Gamma |- t1[t2] : C'' by lemma subst on dt1',dt2
+    _: CT; Gamma |- t1[t2] : C'' <: C' by rule better on dt,s1
+end lemma
+
+
+lemma subst-method :
+    forall mt: CT; Gamma, x:C1 |- FB[x] : C
+    forall dt: CT; Gamma |- t : C1
+    exists  CT; Gamma |- FB[t] : C.
+    _: CT; Gamma |- FB[t] : C by induction on mt:
+	case rule
+	    mt1: CT; Gamma, x : C1 |- t1[x] : C
+	    ------------------------------------------------- T-Return
+	    _: CT; Gamma, x : C1 |- } { return t1[x]; : C
+	is
+	    mt1': CT; Gamma |- t1[t] : C by lemma subst on mt1,dt
+	    mt': CT; Gamma |- } { return t1[t]; : C by rule T-Return on mt1'
+	end case
+	case rule
+	    mt1: CT; Gamma, x:C1, x':C1' |- FB1[x][x'] : C
+	    -------------------------------------------------- T-Formal
+	    _:   CT; Gamma, x:C1 |- C1' x', FB1[x][x'] : C
+	is
+	    mt1x:CT; Gamma, x':C1', x:C1 |- FB1[x][x'] : C by exchange on mt1
+	    dt': CT; Gamma, x':C1' |- t : C1 by weakening on dt
+	    mt1':CT; Gamma, x':C1' |- FB1[t][x'] : C by induction hypothesis on mt1x,dt'
+	    mt': CT; Gamma |- C1' x', FB1[t][x'] : C' by rule T-Formal on mt1'
+	end case
+    end induction
+end lemma
+
+
+lemma subst-method-subtype :
+    forall o: CT |- CT ok
+    forall mt: CT; Gamma, x:C1 |- FB[x] : C
+    forall dt: CT; Gamma |- t : C2
+    forall s2: CT |- C2 <: C1
+    exists  CT; Gamma |- FB[t] : C' <: C.
+    bt': CT; Gamma, x:C2 |- FB[x] : C' <: C by lemma method-subtype on o, mt, s2
+    mt': CT; Gamma, x:C2 |- FB[x] : C' by inversion of betterm on bt'
+    s1': CT |- C' <: C by inversion of betterm on bt'
+    mt'':CT; Gamma |- FB[t] : C' by lemma subst-method on mt',dt
+    _:   CT; Gamma |- FB[t] : C' <: C by rule betterm on mt'',s1'
+end lemma
+
+
+lemma subst-method-args :
+    forall o: CT |- CT ok
+    forall mtt: * |- FB : { CC }
+    forall dtt: CT; * |- tt : CC'
+    forall ss: CT |- CC' <: CC
+    forall mt: CT; * |- FB : C
+    forall sub: FB tt = t
+    exists CT; * |- t : C' <: C .
+    _: CT; * |- t : C' <: C by induction on sub:
+	case rule
+	    ------------------------- apply-none
+	    _: (} { return t;) $ = t
+	is
+	    _: CT; * |- t : C' <: C by case analysis on mtt:
+		case rule
+		    ------------------------------ mat-none
+		    _: * |- } { return t1; : { $ }
+		is
+		    _: CT; * |- t : C <: C by case analysis on ss:
+			case rule
+			    --------------- S-None
+			    _: CT |- $ <: $
+			is
+			    _: CT; * |- t : C <: C by case analysis on dtt:
+				case rule
+				    ----------------- T-None
+				    _: CT; * |- $ : $
+				is
+				    _: CT; * |- t : C <: C by case analysis on mt:
+					case rule
+					    dt: CT; * |- t1 : C
+					    ------------------------------ T-Return
+					    _: CT; * |- } { return t1; : C
+					is
+					    s1: CT |- C <: C by rule S-Refl
+					    _: CT; * |- t : C <: C by rule better on dt,s1
+					end case
+				    end case analysis
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    sub1: FB1[t1] tt1 = t
+	    ------------------------------ apply-some
+	    _: (C1 x, FB1[x]) (t1, tt1) = t
+	is
+	    _: CT; * |- t : C' <: C by case analysis on mtt:
+		case rule
+		    mtt1: *, x:C1 |- FB1[x] : { CC1 }
+		    ------------------------------------ mat-some
+		    _  : * |- C1 x, FB1[x] : { C1, CC1 }
+		is
+		    _: CT; * |- t : C' <: C by case analysis on ss:
+			case rule
+			    s1: CT |- C1' <: C1
+			    ss1: CT |- CC1' <: CC1
+			    ------------------------------- S-Some
+			    _: CT |- (C1',CC1') <: (C1,CC1)
+			is
+			    _: CT; * |- t : C' <: C by case analysis on dtt:
+				case rule
+				    dt1: CT; * |- t1 : C1'
+				    dtt1:CT; * |- tt1 : CC1'
+				    -------------------------------- T-Some
+				    _: CT; * |- t1,tt1 : C1',CC1'
+				is
+				    _: CT; * |- t : C' <: C by case analysis on mt:
+					case rule
+					    mt1: CT; *, x:C1 |- FB1[x] : C
+					    -------------------------------- T-Formal
+					    _:   CT; * |- C1 x, FB1[x] : C
+					is
+					    bt1': CT; * |- FB1[t1] : C'' <: C 
+						    by lemma subst-method-subtype on o, mt1, dt1, s1
+					    mt1':  CT; * |- FB1[t1] : C'' by inversion of betterm on bt1'
+					    s1': CT |- C'' <: C by inversion of betterm on bt1'
+					    mtt1': * |- FB1[t1] : { CC1 } by lemma this-binding-subst on mtt1,t1
+					    bt': CT; * |- t : C' <: C'' 
+					    	 by induction hypothesis on o, mtt1', dtt1, ss1, mt1', sub1
+					    dt': CT; * |- t : C' by inversion of better on bt'
+					    s': CT |- C' <: C'' by inversion of better on bt'
+					    s'': CT |- C' <: C by rule S-Trans on s', s1'
+					    _: CT; * |- t : C' <: C by rule better on dt',s''
+					end case
+				    end case analysis
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+ 	
+
+// We use this exactly once, but don't try to prove it!
+theorem progress-loophole:
+    forall CT
+    forall C1
+    forall C2
+    forall vv: tt value
+    exists CT |- (C1) new C2{tt} -> t.
+    _: CT |- (C1) new C2{tt} -> t by unproved
+end theorem
+
+theorem progress :
+    forall o: CT |- CT ok
+    forall dt: CT; * |- t : C
+    exists CT |- t ->? .
+    _: CT |- t ->? by induction on dt:
+	case rule
+	    v: t:C in *
+	    --------------------- T-Var
+	    _: CT; * |- t : C
+	is
+	    _: CT |- t ->? by case analysis on v: end case analysis
+	end case
+
+	case rule
+	    clf: CT; CT |- class C {ff}
+	    dtt: CT; * |- tt : CC1
+	    fts: ff : CC2
+	    ss: CT |- CC1 <: CC2
+	    ------------------------------ T-New
+	    _: CT; * |- new C{tt} : C
+	is
+	    nss: CT |- tt ->? by theorem progress-terms on o, dtt
+	    _: CT |- new C{tt} ->? by case analysis on nss:
+		case rule
+		    ee: CT |- tt -> tt'
+		    --------------------- nss-eval
+		    _: CT |- tt ->?
+		is
+		    e': CT |- new C{tt} -> new C{tt'} by rule E-New on ee
+		    _:  CT |- new C{tt} ->? by rule ns-eval on e'
+		end case
+		case rule
+		    vv: tt value
+		    ---------------- nss-value
+		    _: CT |- tt ->?
+		is
+		    v: new C{tt} value by rule new-value on vv
+		    _:  CT |- new C{tt} ->? by rule ns-value on v
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    dt1: CT; * |- t1 : C1
+	    cfl: CT; CT |- class C1 {ff}
+	    ffs: ff @ f : C
+	    ------------------------------ T-Field
+	    _: CT; * |- t1 @ f : C
+	is
+	    ns1: CT |- t1 ->? by induction hypothesis on o,dt1
+	    e: CT |- t1@f -> t' by case analysis on ns1:
+		case rule
+		    e1: CT |- t1 -> t1'
+		    ------------------- ns-eval
+		    _: CT |- t1 ->?
+		is
+		    e: CT |- t1@f -> t1'@f by rule E-Field on e1
+		end case
+		case rule
+		    v1: t1 value
+		    ---------------- ns-value
+		    _: CT |- t1 ->?
+		is
+		    cv1: CT; * |- t1 value : C1 by lemma canonical-forms on dt1,v1
+		    _: CT |- t1@f -> t' by case analysis on cv1:
+			case rule
+			    cflp: CT; CT |- class C1 {ff1}
+			    dtt:  CT; * |- tt : CC1
+			    fftp: ff1 : CC2
+			    ss: CT |- CC1 <: CC2
+			    vv: tt value
+			    -------------------------------------- canonical-new
+			    _: CT; * |- new C1{tt} value : C1
+			is
+			    fa: tt : ff @ f = t' by lemma can-project on o, cfl, cflp, fftp, dtt, ss, ffs
+			    _: CT |- new C1{tt}@f -> t' by rule E-ProjNew on vv, cfl, fa
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	    _: CT |- t1@f ->? by rule ns-eval on e
+	end case
+
+	case rule
+		dt1: CT; * |- t1 : C'
+		dtt: CT; * |- tt : CC'
+		ml:  CT; CT |- C'@m = C x { FB[x] }
+		mt:  *, x:C' |- FB[x] : { CC }
+		ss:  CT |- CC' <: CC
+		--------------------------------- T-Invoke
+		_: CT; * |- t1@m{tt} : C
+	is
+		nst1: CT |- t1 ->? by induction hypothesis on o, dt1
+		nstt: CT |- tt ->? by theorem progress-terms on o, dtt
+		_: CT |- t1@m{tt} ->? by case analysis on nst1:
+			case rule
+				et1: CT |- t1 -> t1'
+				-------------------- ns-eval
+				_: CT |- t1 ->?
+			is
+				e: CT |- t1@m{tt} -> t1'@m{tt} by rule E-Invk-Recv on et1
+				_: CT |- t1@m{tt} ->? by rule ns-eval on e
+			end case
+
+			case rule
+				vt1: t1 value
+				--------------- ns-value
+				_: CT |- t1 ->?
+			is
+				_: CT |- t1@m{tt} ->? by case analysis on nstt:
+					case rule
+						ett: CT |- tt -> tt'
+						-------------------- nss-eval
+						_: CT |- tt ->?
+					is
+						e: CT |- t1@m{tt} -> t1@m{tt'} by rule E-Invk-Arg on ett
+						_: CT |- t1@m{tt} ->? by rule ns-eval on e
+					end case
+
+					case rule
+						vtt: tt value
+						--------------- nss-value
+						_: CT |- tt ->?
+					is
+						ct1: CT; * |- t1 value : C' by lemma canonical-forms on dt1, vt1
+						_: CT |- t1@m{tt} ->? by case analysis on ct1:
+							case rule
+								_: CT; CT |- class C' {ff}
+								_: CT; * |- tt' : CC1
+								_: ff : CC2
+								_: CT |- CC1 <: CC2
+								vtt': tt' value
+								------------------------------------ canonical-new
+								_: CT; * |- new C'{tt'} value : C'
+							is
+								mts: * |- FB[new C'{tt'}] : { CC } by lemma this-binding-subst on mt, t1
+								fbs: FB[new C'{tt'}] tt = t2 by lemma can-sub-params on mts, dtt, ss
+								e: CT |- new C'{tt'}@m{tt} -> t2 by rule E-InvkNew on vtt', vtt, ml, fbs
+								_: CT |- new C'{tt'}@m{tt} ->? by rule ns-eval on e
+							end case
+						end case analysis
+					end case
+				end case analysis
+			end case
+		end case analysis
+	end case
+
+	case rule
+		dt': CT; * |- t' : C'
+		--------------------- T-Cast
+		_: CT; * |- (C)t' : C
+	is
+		ns': CT |- t' ->? by induction hypothesis on o, dt'
+		_: CT |- (C)t' ->? by case analysis on ns':
+			case rule
+				et': CT |- t' -> t''
+				-------------------- ns-eval
+				_: CT |- t' ->?
+			is
+				e: CT |- (C)t' -> (C)t'' by rule E-Cast on et'
+				_: CT |- (C)t' ->? by rule ns-eval on e
+			end case
+
+			case rule
+				vt': t' value
+				--------------- ns-value
+				_: CT |- t' ->?
+			is
+				_: CT |- (C)t' ->? by case analysis on vt':
+					case rule
+						vtt: tt value
+						------------------- new-value
+						_: new C1{tt} value
+					is
+						e: CT |- (C)(new C1{tt}) -> t'' by theorem progress-loophole on CT, C, C1, vtt
+						_: CT |- (C)(new C1{tt}) ->? by rule ns-eval on e
+					end case
+				end case analysis
+			end case
+		end case analysis
+	end case
+
+    end induction
+end theorem
+and
+theorem progress-terms: 
+    forall o: CT |- CT ok
+    forall dtt: CT; * |- tt : CC
+    exists CT |- tt ->? .
+    _: CT |- tt ->? by induction on dtt:
+	case rule
+	    --------------------- T-None
+	    _: CT; * |- $ : $
+	is
+	    v: $ value by rule empty-values
+	    _: CT |- $ ->? by rule nss-value on v
+	end case
+	case rule
+	    dt: CT; Gamma |- t : C
+	    dtt1: CT; Gamma |- tt1 : CC1
+	    ---------------------------------- T-Some
+	    _: CT; Gamma |- t,tt1 : C,CC1
+	is
+	    ns: CT |- t ->? by lemma progress on o, dt
+	    nss1: CT |- tt1 ->? by lemma progress-terms on o, dtt1
+	    _: CT |- t,tt1 ->? by case analysis on ns:
+		case rule
+		    e: CT |- t -> t'
+		    ---------------- ns-eval
+		    _: CT |- t ->?
+		is
+		    ee: CT |- t,tt1 -> t',tt1 by rule E-Arg on e
+		    _:  CT |- t,tt1 ->? by rule nss-eval on ee
+		end case
+		case rule
+		    v: t value
+		    --------------- ns-value
+		    _: CT |- t ->?
+		is
+		    _:  CT |- t,tt1 ->? by case analysis on nss1:
+			case rule
+			    ee: CT |- tt1 -> tt1'
+			    --------------------- nss-eval
+			    _: CT |- tt1 ->?
+			is
+			    e': CT |- t,tt1 -> t,tt1' by rule E-Args on v,ee
+			    _:  CT |- t,tt1 ->? by rule nss-eval on e'
+			end case
+			case rule
+			    vv: tt1 value
+			    ---------------- nss-value
+			    _: CT |- tt1 ->?
+			is
+			    v': t,tt1 value by rule more-values on v,vv
+			    _:  CT |- t,tt1 ->? by rule nss-value on v'
+			end case
+		    end case analysis
+		end case		
+	    end case analysis
+	end case
+    end induction
+end theorem
+
+
+theorem preservation:
+    forall o: CT |- CT ok
+    forall dt: CT; * |- t : C
+    forall e: CT |- t -> t'
+    exists CT; * |- t' : C' <: C.
+    _: CT; * |- t' : C' <: C by induction on dt:
+	case rule
+	    v: t:C in *
+	    --------------------- T-Var
+	    _: CT; * |- t : C
+	is
+	    _: CT; * |- t' : C' <: C by case analysis on v: end case analysis
+	end case
+	    
+	case rule
+	    clf: CT; CT |- class C {ff}
+	    dtt: CT; * |- tt : CC1
+	    fts: ff : CC2
+	    ss: CT |- CC1 <: CC2
+	    ------------------------------ T-New
+	    _: CT; * |- new C{tt} : C
+	is
+	    _: CT; * |- t' : C' <: C by case analysis on e:
+		case rule
+		    ee: CT |- tt -> tt'
+		    --------------------------------- E-New
+		    _: CT |- new C{tt} -> new C{tt'}
+		is
+		    bb: CT; * |- tt' : CC' <: CC1 by lemma preservation-terms on o,dtt,ee
+		    dtt': CT; * |- tt' : CC' by inversion of betters on bb
+		    ss': CT |- CC' <: CC1 by inversion of betters on bb
+		    ss'': CT |- CC' <: CC2 by lemma subtypes-transitive on ss',ss
+		    dt': CT; * |- new C{tt'} : C by rule T-New on clf, dtt', fts, ss''
+		    s': CT |- C <: C by rule S-Refl
+		    _: CT; * |- new C{tt'} : C <: C by rule better on dt',s'
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    dt1: CT; * |- t1 : C1
+	    cfl: CT; CT |- class C1 {ff}
+	    ffs: ff @ f : C
+	    ------------------------------ T-Field
+	    _: CT; * |- t1 @ f : C
+	is
+	    _: CT; * |- t' : C' <: C by case analysis on e:
+		case rule
+		    e1: CT |- t1 -> t1'
+		    --------------------------- E-Field
+		    _:  CT |- t1 @ f -> t1' @ f
+		is
+		    b1: CT; * |- t1' : C1' <: C1 by induction hypothesis on o,dt1,e1
+		    dt1': CT; * |- t1' : C1' by inversion of better on b1
+		    s1': CT |- C1' <: C1 by inversion of better on b1
+		    cfsl: CT; CT |- class C1' { ff' } /\ ff' @ f : C 
+			    by lemma class-field-subtype-lookup on o,cfl,ffs,s1'
+		    cfl': CT; CT |- class C1' { ff' } by inversion of cflr on cfsl
+		    ffs': ff' @ f : C by inversion of cflr on cfsl
+		    dt': CT; * |- t1' @ f : C by rule T-Field on dt1',cfl',ffs'
+		    s': CT |- C <: C by rule S-Refl
+		    _: CT; * |- t' : C <: C by rule better on dt',s'
+		end case
+		case rule		    
+		    vv: tt value
+		    cflp: CT; CT |- class C2 { ff' }
+		    fff: tt : ff' @ f = t'
+		    ------------------------------- E-ProjNew
+		    _: CT |- new C2 { tt } @ f -> t'
+		is
+		    v1: new C2 { tt } value by rule new-value on vv
+		    c1: CT; * |- new C2{tt} value : C1 by lemma canonical-forms on dt1,v1
+		    _: CT; * |- t' : C' <: C by case analysis on c1:
+			case rule
+			    cflpp: CT; CT |- class C1 {ff''}
+			    dtt: CT; * |- tt : CC1
+			    fft: ff'' : CC2
+			    ss: CT |- CC1 <: CC2
+			    _: tt value
+			    ------------------------------------ canonical-new
+			    _: CT; * |- new C1{tt} value : C1
+			is		
+			    eq: ff == ff' by lemma field-lookup-unique on o,o, cfl, cflp
+			    eqp: ff' == ff'' by lemma field-lookup-unique on o,o,cflp,cflpp
+			    _: CT; * |- t' : C' <: C by case analysis on eq:
+				case rule
+				    ----------- fields-eq
+				    _: ff == ff
+				is
+				    _: CT; * |- t' : C' <: C by case analysis on eqp:
+					case rule
+					    ----------- fields-eq
+					    _: ff == ff
+					is
+					    _: CT; * |- t' : C' <: C
+						    by lemma select-gets-subtype on fft,dtt,ss,ffs,fff
+					end case
+				    end case analysis
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+		dt1: CT; * |- t1 : C1
+		dtt: CT; * |- tt : CC
+		ml: CT; CT |- C1@m = C x { FB[x] }
+		mtt: *, x:C1 |- FB[x] : { CC1 }
+		ss: CT |- CC <: CC1
+		--------------------------------- T-Invoke
+		_: CT; * |- t1@m{tt} : C
+	is
+		_: CT; * |- t' : C' <: C by case analysis on e:
+			case rule
+				et1: CT |- t1 -> t1'
+				---------------------------- E-Invk-Recv
+				_: CT |- t1@m{tt} -> t1'@m{tt}
+			is
+				dst1': CT; * |- t1' : C1' <: C1 by induction hypothesis on o, dt1, et1
+				dt1': CT; * |- t1' : C1' by inversion of better on dst1'
+				sc1: CT |- C1' <: C1 by inversion of better on dst1'
+
+				mlt: CT; CT |- C1'@m = C x { FB'[x] } : { CC1 } by lemma class-method-subtype-lookup on o, ml, mtt, sc1
+				ml': CT; CT |- C1'@m = C x { FB'[x] } by inversion of cmlr on mlt
+				mt': *, x:C1' |- FB'[x] : { CC1 } by inversion of cmlr on mlt
+
+				dt': CT; * |- t1'@m{tt} : C by rule T-Invoke on dt1', dtt, ml', mt', ss
+				sc: CT |- C <: C by rule S-Refl
+				_: CT; * |- t1'@m{tt} : C <: C by rule better on dt', sc
+			end case
+
+			case rule
+				ett: CT |- tt -> tt'
+				------------------------------ E-Invk-Arg
+				_: CT |- t1@m{tt} -> t1@m{tt'}
+			is
+				dstt': CT; * |- tt' : CC' <: CC by theorem preservation-terms on o, dtt, ett
+				dtt': CT; * |- tt' : CC' by inversion of betters on dstt'
+				ss': CT |- CC' <: CC by inversion of betters on dstt'
+				ss1': CT |- CC' <: CC1 by lemma subtypes-transitive on ss', ss
+
+				dt': CT; * |- t1@m{tt'} : C by rule T-Invoke on dt1, dtt', ml, mtt, ss1'
+				sc: CT |- C <: C by rule S-Refl
+				_: CT; * |- t1@m{tt'} : C <: C by rule better on dt', sc
+			end case
+
+			case rule
+				_: tt1 value
+				_: tt value
+				ml': CT; CT |- C1' @ m = C2 x { FB'[x] }
+				sub: FB'[new C1'{tt1}] tt = t'
+				------------------------------------- E-InvkNew
+				_: CT |- (new C1'{tt1})@m{tt} -> t'
+			is
+				_: CT; * |- t' : C' <: C by case analysis on dt1:
+					case rule
+						i: t1:C1 in *
+						------------------- T-Var
+						_: CT; * |- t1 : C1
+					is
+						_: CT; * |- t' : C' <: C by case analysis on i:
+						end case analysis
+					end case
+
+					case rule
+						_: CT; CT |- class C1 {ff}
+						_: CT; * |- tt1 : CC2
+						_: ff : CC2'
+						_: CT |- CC2 <: CC2'
+						--------------------------- T-New
+						_: CT; * |- new C1{tt1} : C1
+					is
+						meq: C x { FB [x] } == C2 x { FB'[x] } by lemma lookup-method-unique on o, o, ml, ml'
+						_: CT; * |- t' : C' <: C by case analysis on meq:
+							case rule
+								--------------------------------- method-eq
+								_: C x { FB[x] } == C x { FB[x] }
+							is
+								mtt1: * |- FB[new C1{tt1}] : { CC1 } by lemma this-binding-subst on mtt, t1
+
+								bt: CT :> CT by rule cti-self
+								mts: CT; *, x:C1 |- FB[x] : C'' <: C by lemma method-body-typed on o, o, bt, ml
+
+								mt1: CT; *, x:C1 |- FB[x] : C'' by inversion of betterm on mts
+								sc'': CT |- C'' <: C by inversion of betterm on mts
+
+								mt: CT; * |- FB[new C1{tt1}] : C'' by lemma subst-method on mt1, dt1
+								dst': CT; * |- t' : C' <: C'' by lemma subst-method-args on o, mtt1, dtt, ss, mt, sub
+
+								sc': CT |- C' <: C'' by inversion of better on dst'
+								sc: CT |- C' <: C by rule S-Trans on sc', sc''
+								dt': CT; * |- t' : C' by inversion of better on dst'
+								_: CT; * |- t' : C' <: C by rule better on dt', sc
+							end case
+						end case analysis
+					end case
+				end case analysis
+			end case
+		end case analysis
+	end case
+
+	case rule
+		dt1: CT; * |- t1 : C1
+		--------------------- T-Cast
+		_: CT; * |- (C)t1 : C
+	is
+		_: CT; * |- t' : C' <: C by case analysis on e:
+			case rule
+				_: tt value
+				sc: CT |- C' <: C
+				------------------------------------ E-CastNew
+				_: CT |- (C)(new C'{tt}) -> new C'{tt}
+			is
+				_: CT; * |- new C'{tt} : C' <: C by case analysis on dt1:
+					case rule
+						_: CT; CT |- class C' {ff}
+						_: CT; * |- tt : CC1
+						_: ff : CC2
+						_: CT |- CC1 <: CC2
+						------------------------------ T-New
+						_: CT; * |- new C'{tt} : C'
+					is
+						_: CT; * |- new C'{tt} : C' <: C by rule better on dt1, sc
+					end case
+
+					case rule
+						i: t1:C1 in *
+						------------------- T-Var
+						_: CT; * |- t1 : C1
+					is
+						_: CT; * |- t1 : C' <: C by case analysis on i:
+						end case analysis
+					end case
+				end case analysis
+			end case
+
+			case rule
+				et1: CT |- t1 -> t1'
+				------------------------ E-Cast
+				_: CT |- (C)t1 -> (C)t1'
+			is
+				dst1': CT; * |- t1' : C1' <: C1 by induction hypothesis on o, dt1, et1
+				dt1': CT; * |- t1' : C1' by inversion of better on dst1'
+				dt': CT; * |- (C)t1' : C by rule T-Cast on dt1'
+				sc: CT |- C <: C by rule S-Refl
+				_: CT; * |- (C)t1' : C <: C by rule better on dt', sc
+			end case
+		end case analysis
+	end case
+
+    end induction
+end theorem
+and
+theorem preservation-terms:
+    forall o: CT |- CT ok
+    forall dtt: CT; * |- tt : CC
+    forall ee: CT |- tt -> tt'
+    exists CT; * |- tt' : CC' <: CC.
+    _: CT; * |- tt' : CC' <: CC by induction on dtt:
+	case rule
+	    --------------------- T-None
+	    _: CT; * |- $ : $
+	is
+	    _: CT; * |- tt' : CC' <: CC by case analysis on ee: end case analysis
+	end case
+	case rule
+	    dt: CT; * |- t : C
+	    dtt1: CT; * |- tt1 : CC1
+	    ---------------------------------- T-Some
+	    _: CT; * |- t,tt1 : C,CC1
+	is
+	    _: CT; * |- tt' : CC' <: CC by case analysis on ee:
+		case rule
+		    e: CT |- t -> t'
+		    ------------------------ E-Arg
+		    _: CT |- t,tt1 -> t',tt1
+		is
+		    bt: CT; * |- t' : C' <: C by lemma preservation on o,dt,e
+		    dt': CT; * |- t' : C' by inversion of better on bt
+		    s': CT |- C' <: C by inversion of better on bt
+		    dtt': CT; * |- t',tt1 : C',CC1 by rule T-Some on dt',dtt1
+		    ss1: CT |- CC1 <: CC1 by lemma subtypes-reflexive on CT,CC1
+		    ss': CT |- C',CC1 <: C,CC1 by rule S-Some on s',ss1
+		    _: CT; * |- t',tt1 : C',CC1 <: C,CC1 by rule betters on dtt',ss'
+		end case
+		case rule
+		    _: t value
+		    ee1: CT |- tt1 -> tt1'
+		    ---------------------- E-Args
+		    _: CT |- t,tt1 -> t,tt1'
+		is
+		    btt1: CT; * |- tt1' : CC1' <: CC1 by induction hypothesis on o,dtt1,ee1
+		    dtt1':CT; * |- tt1' : CC1' by inversion of betters on btt1
+		    ss1': CT |- CC1' <: CC1 by inversion of betters on btt1
+		    dtt': CT; * |- t,tt1': C,CC1' by rule T-Some on dt,dtt1'
+		    s1: CT |- C <: C by rule S-Refl
+		    ss': CT |- C,CC1' <: C,CC1 by rule S-Some on s1,ss1'
+		    _: CT; * |- t,tt1' : C,CC1' <: C,CC1 by rule betters on dtt',ss'
+		end case
+	    end case analysis
+	end case
+    end induction
+end theorem

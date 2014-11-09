@@ -1,0 +1,1002 @@
+/* CompSci 732
+ * Fall 2011
+ * Homework #5
+ */
+
+package edu.uwm.cs.cs732;
+
+terminals contradiction true false if then else value
+          succ pred iszero numvalue Bool Nat in
+
+
+syntax
+
+t ::= true 
+  | false
+  | if t then t else t
+  | 0
+  | succ t
+  | pred t
+  | iszero t
+
+T ::= Nat
+  | Bool
+
+
+judgment absurd: contradiction
+
+
+judgment equality: t == t
+
+------ eq
+t == t
+
+
+judgment subterm: t in t
+
+------ sub-refl
+t in t
+
+--------------------------- sub-if1
+t1 in if t1 then t2 else t3
+
+--------------------------- sub-if2
+t2 in if t1 then t2 else t3
+
+--------------------------- sub-if3
+t3 in if t1 then t2 else t3
+
+----------- sub-succ
+t in succ t
+
+----------- sub-pred
+t in pred t
+
+------------- sub-iszero
+t in iszero t
+
+t1 in t2
+t2 in t3
+-------- sub-trans
+t1 in t3
+
+
+judgment isanumval: t numvalue
+
+---------- numval-zero
+0 numvalue
+
+t numvalue
+--------------- numval-succ
+succ t numvalue
+
+
+judgment isavalue: t value
+
+t numvalue
+----------- val-num
+t value
+
+--------------- val-true
+true value
+
+---------------- val-false
+false value
+
+
+judgment eval: t -> t
+
+----------------------------- E-IfTrue
+if true then t1 else t2 -> t1
+
+------------------------------ E-IfFalse
+if false then t1 else t2 -> t2
+
+t1 -> t1'
+----------------------------------------------- E-If
+if t1 then t2 else t3 -> if t1' then t2 else t3
+
+t1 -> t1'
+------------------- E-Succ
+succ t1 -> succ t1'
+
+----------- E-PredZero
+pred 0 -> 0
+
+t numvalue
+------------------ E-PredSucc
+pred (succ t) -> t
+
+t1 -> t1'
+------------------- E-Pred
+pred t1 -> pred t1'
+
+---------------- E-IszeroZero
+iszero 0 -> true
+
+t numvalue
+------------------------ E-IszeroSucc
+iszero (succ t) -> false
+
+t1 -> t1'
+----------------------- E-Iszero
+iszero t1 -> iszero t1'
+
+
+judgment notstuck: t ->?
+
+t value
+------- ns-value
+t ->?
+
+t -> t'
+------- ns-eval
+t ->?
+
+
+judgment type: t : T
+
+----------- T-True
+true : Bool
+
+------------ T-False
+false : Bool
+
+t1 : Bool
+t2 : T
+t3 : T
+------------------------- T-If
+if t1 then t2 else t3 : T
+
+------- T-Zero
+0 : Nat
+
+t : Nat
+------------ T-Succ
+succ t : Nat
+
+t : Nat
+------------ T-Pred
+pred t : Nat 
+
+t : Nat
+--------------- T-Iszero
+iszero t : Bool
+
+
+judgment canonical: t value : T
+
+----------------- canonical-true
+true value : Bool
+
+------------------ canonical-false
+false value : Bool
+
+t numvalue
+------------- canonical-num
+t value : Nat
+
+
+// Lemma for Thm 3.5.4
+lemma numvalue-eval-contradiction:
+    forall v: t numvalue
+    forall e: t -> t'
+    exists contradiction.
+    _ : contradiction by induction on v:
+	case rule
+	    --------- numval-zero
+	    _:0 numvalue
+	is
+	    _ : contradiction by case analysis on e:
+	    end case analysis
+	end case
+
+	case rule
+	    v1: t1 numvalue
+	    --------------- numval-succ
+	    _:succ t1 numvalue
+	is
+	    _ : contradiction by case analysis on e:
+	        case rule
+		    e1: t1 -> t1'
+		    --------------------- E-Succ
+		    _:succ t1 -> succ t1'
+		is
+		    _:contradiction by induction hypothesis on v1,e1
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+
+// Thm 3.5.4
+theorem value-eval-contradiction:
+    forall v: t value
+    forall e: t -> t'
+    exists contradiction.
+    _ : contradiction by case analysis on v:
+
+	case rule
+	    nv: t numvalue
+	    --------- val-num
+	    _: t value
+	is
+	    _ : contradiction by lemma numvalue-eval-contradiction on nv,e
+	end case
+
+        case rule
+	    ------------ val-true
+	    _:true value
+	is
+	    _ : contradiction by case analysis on e:
+	    end case analysis
+	end case
+
+        case rule
+	    ------------- val-false
+	    _:false value
+	is
+	    _ : contradiction by case analysis on e:
+	    end case analysis
+	end case
+    end case analysis
+end theorem
+
+
+// Exercise 8.2.3
+lemma subterms-typed :
+    forall d: t : T
+    forall i: t' in t
+    exists t' : T' .
+
+	_: t' : T' by induction on i:
+		case rule
+			--------- sub-refl
+			_: t in t
+		is
+			_: t' : T by d
+		end case
+
+		case rule
+			------------------------------ sub-if1
+			_: t' in if t' then t2 else t3
+		is
+			_: t' : Bool by case analysis on d:
+				case rule
+					w: t' : Bool
+					_: t2 : T
+					_: t3 : T
+					---------------------------- T-If
+					_: if t' then t2 else t3 : T
+				is
+					_: t' : Bool by w
+				end case
+			end case analysis
+		end case
+
+		case rule
+			------------------------------ sub-if2
+			_: t' in if t1 then t' else t3
+		is
+			_: t' : T by case analysis on d:
+				case rule
+					_: t1 : Bool
+					w: t' : T
+					_: t3 : T
+					---------------------------- T-If
+					_: if t1 then t' else t3 : T
+				is
+					_: t' : T by w
+				end case
+			end case analysis
+		end case
+
+		case rule
+			------------------------------ sub-if3
+			_: t' in if t1 then t2 else t'
+		is
+			_: t' : T by case analysis on d:
+				case rule
+					_: t1 : Bool
+					_: t2 : T
+					w: t' : T
+					---------------------------- T-If
+					_: if t1 then t2 else t' : T
+				is
+					_: t' : T by w
+				end case
+			end case analysis
+		end case
+
+		case rule
+			---------------- sub-succ
+			_: t' in succ t'
+		is
+			_: t' : Nat by case analysis on d:
+				case rule
+					w: t' : Nat
+					---------------- T-Succ
+					_: succ t' : Nat
+				is
+					_: t' : Nat by w
+				end case
+			end case analysis
+		end case
+
+		case rule
+			---------------- sub-pred
+			_: t' in pred t'
+		is
+			_: t' : Nat by case analysis on d:
+				case rule
+					w: t' : Nat
+					---------------- T-Pred
+					_: pred t' : Nat
+				is
+					_: t' : Nat by w
+				end case
+			end case analysis
+		end case
+
+		case rule
+			------------------ sub-iszero
+			_: t' in iszero t'
+		is
+			_: t' : Nat by case analysis on d:
+				case rule
+					w: t' : Nat
+					------------------- T-Iszero
+					_: iszero t' : Bool
+				is
+					_: t' : Nat by w
+				end case
+			end case analysis
+		end case
+
+		case rule
+			i1: t' in t2
+			i2: t2 in t
+			------------ sub-trans
+			_: t' in t
+		is
+			es: t2 : T2 by induction hypothesis on d, i2
+			_: t' : T' by induction hypothesis on es, i1
+		end case
+	end induction
+end lemma
+
+
+lemma canonical-forms :
+    forall d: t : T
+    forall v: t value
+    exists t value : T .
+    _ : t value : T by case analysis on v:
+	case rule
+	    ------------- val-true
+	    _: true value
+	is
+	    _: true value : T by case analysis on d:
+		case rule
+		    -------------- T-True
+		    _: true : Bool
+		is
+		    _: true value : Bool by rule canonical-true
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    -------------- val-false
+	    _: false value
+	is
+	    _: false value : T by case analysis on d:
+		case rule
+		    --------------- T-False
+		    _: false : Bool
+		is
+		    _: false value : Bool by rule canonical-false
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    nv: t numvalue
+	    -------------- val-num
+	    _ : t value
+	is
+	    _: t value : T by case analysis on nv:
+		case rule
+		    ------------- numval-zero
+		    _: 0 numvalue
+		is
+		    _: 0 value : T by case analysis on d:
+			case rule
+			    ---------- T-Zero
+			    _: 0 : Nat
+			is
+			    _: 0 value : Nat by rule canonical-num on nv
+			end case
+		    end case analysis
+		end case
+		case rule
+		    _: t1 numvalue
+		    ------------------ numval-succ
+		    _: succ t1 numvalue
+		is
+		    _: succ t1 value : T by case analysis on d:
+			case rule
+			    _: t1 : Nat
+			    ---------------- T-Succ
+			    _: succ t1 : Nat
+			is
+			    _: succ t1 value : Nat by rule canonical-num on nv
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+    end case analysis
+end lemma
+		
+    
+theorem progress :
+    forall d: t : T
+    exists t ->? .
+    _ : t ->? by induction on d:
+	case rule
+	    -------------- T-True
+	    _: true : Bool
+	is
+	    v: true value by rule val-true
+	    _: true ->? by rule ns-value on v
+	end case
+	case rule
+	    --------------- T-False
+	    _: false : Bool
+	is
+	    v: false value by rule val-false
+	    _: false ->? by rule ns-value on v
+	end case
+
+	case rule
+	    d1: t1 : Bool
+	    d2: t2 : T
+	    d3: t3 : T
+	    ---------------------------- T-If
+	    _: if t1 then t2 else t3 : T
+	is
+	    ns1: t1 ->? by induction hypothesis on d1
+	    _ : t ->? by case analysis on ns1:
+		case rule
+		    v1: t1 value
+		    ------------ ns-value
+		    _ : t1 ->?
+		is
+		    cf: t1 value : Bool by lemma canonical-forms on d1,v1
+		    _ : t ->? by case analysis on cf:
+			case rule
+			    ------------------- canonical-true
+			    _: true value : Bool
+			is
+			    e: if true then t2 else t3 -> t2 by rule E-IfTrue
+			    ns: if true then t2 else t3 ->? 
+				    by rule ns-eval on e
+			end case
+			case rule
+			    --------------------- canonical-false
+			    _: false value : Bool
+			is
+			    e: if false then t2 else t3 -> t3 by rule E-IfFalse
+			    ns: if false then t2 else t3 ->? 
+				    by rule ns-eval on e
+			end case
+		    end case analysis
+		end case
+		case rule
+		    e1: t1 -> t1'
+		    ------------- ns-eval
+		    _: t1 ->?
+		is
+		    e: if t1 then t2 else t3 -> if t1' then t2 else t3
+			    by rule E-If on e1
+		    _: if t1 then t2 else t3 ->? by rule ns-eval on e
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    ---------- T-Zero
+	    _: 0 : Nat
+	is
+	    nv: 0 numvalue by rule numval-zero
+	    v : 0 value by rule val-num on nv
+	    _ : 0 ->? by rule ns-value on v
+	end case
+
+	case rule
+	    d1: t1 : Nat
+	    ---------------- T-Succ
+	    _: succ t1 : Nat
+	is
+	    ns1: t1 ->? by induction hypothesis on d1
+	    _: succ t1 ->? by case analysis on ns1:
+		case rule
+		    v1: t1 value
+		    ------------ ns-value
+		    _ : t1 ->?
+		is
+		    cf: t1 value : Nat by lemma canonical-forms on d1,v1
+		    _: succ t1 ->? by case analysis on cf:
+			case rule
+			    nv1: t1 numvalue
+			    ----------------- canonical-num
+			    _: t1 value : Nat
+			is
+			    nv: succ t1 numvalue by rule numval-succ on nv1
+			    v : succ t1 value by rule val-num on nv
+			    _ : succ t1 ->? by rule ns-value on v
+			end case
+		    end case analysis
+		end case
+		case rule
+		    e1: t1 -> t1'
+		    ------------- ns-eval
+		    _ : t1 ->?
+		is
+		    e: succ t1 -> succ t1' by rule E-Succ on e1
+		    _: succ t1 ->? by rule ns-eval on e
+		end case
+	    end case analysis
+	end case
+	    
+	case rule
+	    d1: t1 : Nat
+	    ---------------- T-Pred
+	    _: pred t1 : Nat
+	is
+	    ns1: t1 ->? by induction hypothesis on d1
+	    _: pred t1 ->? by case analysis on ns1:
+		case rule
+		    v1: t1 value
+		    ------------ ns-value
+		    _ : t1 ->?
+		is
+		    cf: t1 value : Nat by lemma canonical-forms on d1,v1
+		    _: pred t1 ->? by case analysis on cf:
+			case rule
+			    nv1: t1 numvalue
+			    ----------------- canonical-num
+			    _: t1 value : Nat
+			is
+			    _ : pred t1 ->? by case analysis on nv1:
+				case rule
+				    ------------- numval-zero
+				    _: 0 numvalue
+				is
+				    e: pred 0 -> 0 by rule E-PredZero
+				    _: pred 0 ->? by rule ns-eval on e
+				end case
+				case rule
+				    nv1: t11 numvalue
+				    -------------------- numval-succ
+				    _: succ t11 numvalue
+				is
+				    e : pred succ t11 -> t11 
+					    by rule E-PredSucc on nv1
+				    _: pred succ t11 ->? by rule ns-eval on e
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+		case rule
+		    e1: t1 -> t1'
+		    ------------- ns-eval
+		    _ : t1 ->?
+		is
+		    e: pred t1 -> pred t1' by rule E-Pred on e1
+		    _: pred t1 ->? by rule ns-eval on e
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    d1: t1 : Nat
+	    ------------------- T-Iszero
+	    _: iszero t1 : Bool
+	is
+	    ns1: t1 ->? by induction hypothesis on d1
+	    _: iszero t1 ->? by case analysis on ns1:
+		case rule
+		    v1: t1 value
+		    ------------ ns-value
+		    _ : t1 ->?
+		is
+		    cf: t1 value : Nat by lemma canonical-forms on d1,v1
+		    _: iszero t1 ->? by case analysis on cf:
+			case rule
+			    nv1: t1 numvalue
+			    ----------------- canonical-num
+			    _: t1 value : Nat
+			is
+			    _ : iszero t1 ->? by case analysis on nv1:
+				case rule
+				    ------------- numval-zero
+				    _: 0 numvalue
+				is
+				    e: iszero 0 -> true by rule E-IszeroZero
+				    _: iszero 0 ->? by rule ns-eval on e
+				end case
+				case rule
+				    nv1: t11 numvalue
+				    -------------------- numval-succ
+				    _: succ t11 numvalue
+				is
+				    e : iszero succ t11 -> false 
+					    by rule E-IszeroSucc on nv1
+				    _: iszero succ t11 ->? by rule ns-eval on e
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+		case rule
+		    e1: t1 -> t1'
+		    ------------- ns-eval
+		    _ : t1 ->?
+		is
+		    e: iszero t1 -> iszero t1' by rule E-Iszero on e1
+		    _: iszero t1 ->? by rule ns-eval on e
+		end case
+	    end case analysis
+	end case
+
+    end induction
+end theorem
+
+
+lemma numvalue-nat :
+    forall nv: t numvalue
+    exists t : Nat .
+    _: t : Nat by induction on nv:
+	case rule
+	    ------------- numval-zero
+	    _: 0 numvalue
+	is
+	    _: 0 : Nat by rule T-Zero
+	end case
+	case rule
+	    nv1: t1 numvalue
+	    ------------------- numval-succ
+	    _: succ t1 numvalue
+	is
+	    d1: t1 : Nat by induction hypothesis on nv1
+	    _: succ t1 : Nat by rule T-Succ on d1
+	end case
+    end induction
+end lemma
+
+
+theorem preservation :
+    forall d: t : T
+    forall e: t -> t'
+    exists t' : T .
+    _ : t' : T by induction on d:
+	case rule
+	    -------------- T-True
+	    _: true : Bool
+	is
+	    _: t' : Bool by case analysis on e:
+	    end case analysis
+	end case
+	case rule
+	    --------------- T-False
+	    _: false : Bool
+	is
+	    _: t' : Bool by case analysis on e:
+	    end case analysis
+	end case
+
+	case rule
+	    d1: t1 : Bool
+	    d2: t2 : T
+	    d3: t3 : T
+	    ---------------------------- T-If
+	    _: if t1 then t2 else t3 : T
+	is
+	    _: t' : T by case analysis on e:
+		case rule
+		    -------------------------------- E-IfTrue
+		    _: if true then t2 else t3 -> t2
+		is
+		    _: t2 : T by d2
+		end case
+		case rule
+		    --------------------------------- E-IfFalse
+		    _: if false then t2 else t3 -> t3
+		is
+		    _: t3 : T by d3
+		end case
+		case rule
+		    e1: t1 -> t1'
+		    -------------------------------------------------- E-If
+		    _: if t1 then t2 else t3 -> if t1' then t2 else t3
+		is
+		    d1': t1' : Bool by induction hypothesis on d1,e1
+		    _ : if t1' then t2 else t3 : T by rule T-If on d1',d2,d3
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    ---------- T-Zero
+	    _: 0 : Nat
+	is
+	    _ : t' : Nat by case analysis on e:
+	    end case analysis
+	end case
+
+	case rule
+	    d1: t1 : Nat
+	    ---------------- T-Succ
+	    _: succ t1 : Nat
+	is
+	    _: t' : Nat by case analysis on e:
+		case rule
+		    e1: t1 -> t1'
+		    ---------------------- E-Succ
+		    _: succ t1 -> succ t1'
+		is
+		    d1' : t1' : Nat by induction hypothesis on d1,e1
+		    _ : succ t1' : Nat by rule T-Succ on d1'
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    d1: t1 : Nat
+	    ---------------- T-Pred
+	    _: pred t1 : Nat
+	is
+	    _: t' : Nat by case analysis on e:
+		case rule
+		    e1: t1 -> t1'
+		    ---------------------- E-Pred
+		    _: pred t1 -> pred t1'
+		is
+		    d1': t1' : Nat by induction hypothesis on d1,e1
+		    _: pred t1' : Nat by rule T-Pred on d1'
+		end case
+		case rule
+		    --------------- E-PredZero
+		    _ : pred 0 -> 0
+		is
+		    _ : 0 : Nat by rule T-Zero
+		end case
+		case rule
+		    nv11 : t11 numvalue
+		    ------------------------ E-PredSucc
+		    _ : pred succ t11 -> t11
+		is
+		    _ : t11 : Nat by lemma numvalue-nat on nv11
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    d1: t1 : Nat
+	    ------------------- T-Iszero
+	    _: iszero t1 : Bool
+	is
+	    _: t' : Bool by case analysis on e:
+		case rule
+		    e1: t1 -> t1'
+		    ---------------------- E-Iszero
+		    _: iszero t1 -> iszero t1'
+		is
+		    d1' : t1' : Nat by induction hypothesis on d1,e1
+		    _ : iszero t1' : Bool by rule T-Iszero on d1'
+		end case
+		case rule
+		    -------------------- E-IszeroZero
+		    _ : iszero 0 -> true
+		is
+		    _ : true : Bool by rule T-True
+		end case
+		case rule
+		    nv11 : t11 numvalue
+		    ---------------------------- E-IszeroSucc
+		    _ : iszero succ t11 -> false
+		is
+		    _ : false : Bool by rule T-False
+		end case
+	    end case analysis
+	end case
+	
+    end induction
+end theorem
+
+
+// Exercise 8.3.4
+theorem preservation2 :
+    forall d: t : T
+    forall e: t -> t'
+    exists t' : T .
+    _ : t' : T by induction on e:
+		case rule
+			-------------------------------- E-IfTrue
+			_: if true then t' else t2 -> t'
+		is
+			_: t' : T by case analysis on d:
+				case rule
+					_: t1' : Bool
+					w: t' : T
+					_: t3' : T
+					---------------------------- T-If
+					_: if t1' then t' else t3' : T
+				is
+					_: t' : T by w
+				end case
+			end case analysis
+		end case
+
+		case rule
+			-------------------------------- E-IfFalse
+			_: if false then t1 else t' -> t'
+		is
+			_: t' : T by case analysis on d:
+				case rule
+					_: t1' : Bool
+					_: t2' : T
+					w: t' : T
+					---------------------------- T-If
+					_: if t1' then t2' else t' : T
+				is
+					_: t' : T by w
+				end case
+			end case analysis
+		end case
+
+		case rule
+			es: t1 -> t1'
+			-------------------------------------------------- E-If
+			_: if t1 then t2 else t3 -> if t1' then t2 else t3
+		is
+			_: t' : T by case analysis on d:
+				case rule
+					wt1: t1 : Bool
+					wt2: t2 : T
+					wt3: t3 : T
+					---------------------------- T-If
+					_: if t1 then t2 else t3 : T
+				is
+					es1: t1' : Bool by induction hypothesis on wt1, es
+					_: t' : T by rule T-If on es1, wt2, wt3
+				end case
+			end case analysis
+		end case
+
+		case rule
+			es: t1 -> t1'
+			---------------------- E-Succ
+			_: succ t1 -> succ t1'
+		is
+			_: succ t1' : T by case analysis on d:
+				case rule
+					wt: t1 : Nat
+					------------ T-Succ
+					_: succ t1 : Nat
+				is
+					es1: t1' : Nat by induction hypothesis on wt, es
+					_: succ t1' : Nat by rule T-Succ on es1
+				end case
+			end case analysis
+		end case
+
+		case rule
+			-------------- E-PredZero
+			_: pred 0 -> 0
+		is
+			_: 0 : T by case analysis on d:
+				case rule
+					_: 0 : Nat
+					--------------- T-Pred
+					_: pred 0 : Nat 
+				is
+					_: 0 : Nat by rule T-Zero
+				end case
+			end case analysis
+		end case
+
+		case rule
+			_: t' numvalue
+			----------------------- E-PredSucc
+			_: pred (succ t') -> t'
+		is
+			_: t' : T by case analysis on d:
+				case rule
+					d': succ t' : Nat
+					----------------------- T-Pred
+					_: pred (succ t') : Nat
+				is
+					_: t' : Nat by case analysis on d':
+						case rule
+							es: t' : Nat
+							---------------- T-Succ
+							_: succ t' : Nat
+						is
+							_: t' : Nat by es
+						end case
+					end case analysis
+				end case
+			end case analysis
+		end case
+
+		case rule
+			es: t1 -> t1'
+			---------------------- E-Pred
+			_: pred t1 -> pred t1'
+		is
+			_: t' : T by case analysis on d:
+				case rule
+					wt: t1 : Nat
+					------------ T-Pred
+					_: pred t1 : Nat
+				is
+					es1: t1' : Nat by induction hypothesis on wt, es
+					_: t' : Nat by rule T-Pred on es1
+				end case
+			end case analysis
+		end case
+
+		case rule
+			------------------- E-IszeroZero
+			_: iszero 0 -> true
+		is
+			_: true : T by case analysis on d:
+				case rule
+					_: 0 : Nat
+					------------------ T-Iszero
+					_: iszero 0 : Bool
+				is
+					_: true : Bool by rule T-True
+				end case
+			end case analysis
+		end case
+
+		case rule
+			_: t1 numvalue
+			--------------------------- E-IszeroSucc
+			_: iszero (succ t1) -> false
+		is
+			_: false : T by case analysis on d:
+				case rule
+					_: succ t1 : Nat
+					-------------------------- T-Iszero
+					_: iszero (succ t1) : Bool
+				is
+					_: false : Bool by rule T-False
+				end case
+			end case analysis
+		end case
+
+		case rule
+			es: t1 -> t1'
+			-------------------------- E-Iszero
+			_: iszero t1 -> iszero t1'
+		is
+			_: iszero t1' : T by case analysis on d:
+				case rule
+					wt: t1 : Nat
+					------------------- T-Iszero
+					_: iszero t1 : Bool
+				is
+					es1: t1' : Nat by induction hypothesis on wt, es
+					_: iszero t1' : Bool by rule T-Iszero on es1
+				end case
+			end case analysis
+		end case
+    end induction
+end theorem
+

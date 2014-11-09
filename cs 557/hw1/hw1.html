@@ -1,0 +1,167 @@
+<html>
+  <head>
+    <title>CS557 Homework 1</title>
+  </head>
+
+  <body>
+<h3>Homework 1 due Monday October 13</h3>
+This program involves creating a database schema, populating the database and writing 
+relational algebra and SQL queries to generate reports and answer questions about a 
+baseball database. If you not acquainted with the 
+game of baseball, some of the terms used in this assignment may be unfamiliar. 
+<a href="http://en.wikipedia.org/wiki/Baseball">Wikipedia's baseball entry</a> may be helpful.
+Also, please see me (early) if you are confused.
+
+You will populate the database with information about teams, players and games from the
+ 2006 season of Major League Baseball (the major North American professional baseball
+league).
+
+<h3>Part I, Create the Database Tables and Populate the Database</h3>
+
+The first part of the assignment involves writing SQL DDL 
+statements for creating the tables of the 
+database and then populating those 
+tables from data files. The database should contain three 
+tables: <code>team, player</code>, and <code>game</code>. 
+The <code>team</code> table contains
+information on baseball teams, the <code>player</code> table contains
+information on baseball players, and the <code>game</code> table contains
+information on the results of baseball games.
+<p>
+Column information for each of these tables is given below.
+Since the order of the fields in the data files you will use 
+to populate the tables is the same as the columns described
+below, it is essential that the columns in the CREATE TABLE 
+statements be in this order.
+<ul>
+<li>the <code>team</code> table has the following columns
+<ul>
+<li><b>team_id:</b>   A three character unique identifier for a team
+<li><b>team_name:</b> Primary name of team, usually a city or state (eg, 'Milwaukee')
+<li><b>nickname:</b>  For example, 'Brewers'. Not longer than 15 characters. 
+<li><b>league:</b>    Each team is in one or two leagues: either 'AL' for American League, 
+                      or 'NL' for National league
+<li><b>division:</b>  'East', 'West' or 'Central'
+</ul>
+<p>
+<li>the <code>player</code> table has the following columns
+<ul>
+<li><b>player_id:</b> An eight character unique identifier for a player
+<li><b>lname:</b>     Last name of player
+<li><b>fname:</b>     First name of player
+<li><b>bats:</b>      A one character indication of the player batting batting preference. Either 'R','L' or 'B' for (right, left and both).
+<li><b>throws:</b>    A one character indication of the player throwing preference. Either 'R' or 'L' (right, left).  For pitchers this indicates their pitching hand.
+<li><b>primary_pos:</b> A one or two character designation of a player's primary position. One of 
+'P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF' or 'OF'  
+</ul>
+<p>
+<li>the <code>game</code> table has the following columns:
+<ul>
+<li><b>game_id</b>         A twelve character unique identifier for a game
+<li><b>game_date</b>       The date for the game (use SQL 'DATE' type for this column)
+<li><b>away_team</b>       The team_id of the visiting team
+<li><b>home_team</b>       The team_id of the home team
+<li><b>away_pitcher</b>    The player_id of the starting pitcher for the visiting team
+<li><b>home_pitcher</b>    The player_id of the starting pitcher for the home team
+<li><b>attendance</b>      number of people attending the game
+<li><b>num_innings</b>     number of innings in the game (>9 indicates "extra innings")
+<li><b>away_score</b>      number of runs scored by the visiting team
+<li><b>home_score</b>      number of runs scored by the home team
+<li><b>away_hits</b>       number of hits by the visiting team
+<li><b>home_hits</b>       number of hits by the home team
+<li><b>home_errors</b>     number of errors by the home team
+<li><b>away_errors</b>     number of errors by the home team
+<li><b>winning_pitcher</b> player_id of the winning pitcher
+<li><b>losing_pitcher</b>  player_id of the losing pitcher
+<li><b>save_pitcher</b>    player_id of the pitcher earning the save (NULL if there is no save)
+</ul>
+<p>
+<!--
+<li>the <code>event</code> table has over thirty columns describing events within a baseball game.
+The CREATE TABLE statement for <code>event</code> is provided to you so only those columns that 
+are needed for this assignment are described. If you are curious the other attributes, you can 
+find more information at the <a href="http://www.retrosheet.org/">retrosheet</a> website. This 
+<a href="http://www.retrosheet.org/datause.txt">page</a> is especially useful. The data files 
+used in this assignment were created from data and programs provided by retrosheet.
+-->
+</ul>
+<h4> What you need to do for Part I</h4>
+<ol> 
+<li>Login to <code>weise.cs.uwm.edu</code>. MySQL will not work on the grids. <p>
+<li>Copy all files from <p>
+<code>/users/csfac/joebock/Public/557/HW1/src</code>
+<p>
+to your favorite directory. There are two kinds of files in this directory. 
+The <code>*sql</code> files contain the skeleton of SQL commands to create the tables and 
+load the data. The <code>*txt</code> files are
+comma separated value data files relating to the 2006 Major League Baseball season. The data in
+these files were derived from data assembled by <a href="http://www.retrosheet.org">retrosheet</a>. <p>
+<li>Complete the <code>CREATE TABLE</code> statements for the <code>team, game</code> and
+<code>player</code> tables started in  
+<code>ddl_team.sql, ddl_game.sql</code> and <code>ddl_player.sql</code>.
+<!--The complete <code>CREATE TABLE</code> statement for the <code>event</code> table is
+in <code>ddl_event.sql</code>. -->
+Be sure you include NOT NULL, PRIMARY KEY and FOREIGN KEY 
+constraints as appropriate. The bottoms of these files contain statements to populate the tables from 
+the data files. You may want to comment out these lines when you are testing your
+<code>CREATE TABLE</code> statements (# is a SQL comment character). You may also want to declare
+some columns as enum's. <p>
+<li>Run these statements in the MySQL interpreter. First start the mysql client by running
+<pre>/usr/local/mysql/bin/mysql -u [username] -h weise -p --local_infile</pre>
+Next, make your personal database the default:
+<pre> mysql> use 557_[username]_db </pre>
+And finally execute the SQL commands in the .sql files using the <code>source</code> statement.
+For example to create and load the <code>game</code> table run
+<pre> mysql> source ddl_game.sql </pre>
+You should have no errors and no warnings. If you get warnings you can view them by running  
+the <code>show warnings</code> command.
+<p>
+I do not recommend (as implied in these steps) writing all the <code>CREATE TABLE</code> statements before
+testing them. Rather you should iterate steps 3 and 4 often.
+</ol>
+
+<h3>Part II. Write SQL statements for all of the following queries. 
+Include the relational algebra expressions for queries 1, 3, 4 and 6</h3>
+
+<ol>
+<li>Team names and nicknames of all teams in the West division of the American League.<p></li>
+
+<li>The list of team name, nickname, league and division for all teams where teams are organized 
+by leagues, within each league by division and within each division alphabetcially by team name. <p></li>
+
+<li>A list of all primary positions, and a count of the number of players in the league that play that 
+position<p></li>
+
+<li>A report that lists each team's name and the number of extra innings games played by 
+that team. That is the number of games where num_innings > 9.<p></li>
+
+<li>The number of times the Pittsburgh Pirates scored exactly zero runs in a game in 2006?<p></li>
+
+<li>
+An alphabetical list of the first and last names of all 
+pitchers who won at least one game. The list should not 
+contain any duplicates<p></li>
+
+<li>The number of games won by teams in the East division of the American League 
+in June.<p></li>
+
+<li>The number of games in which the losing team had more than 15 hits?<p></li>
+
+<li> This final question asks you to determine which pitchers on average 
+draw the largest crowds when pitching for the visiting team.
+Construct a list of the first and last names and average attendence 
+for the ten starting pitchers who draw the largest average crowds 
+when they start road games. (use "LIMIT 0,10" at the end of the statement 
+to restrict the results to the top ten. See <code> help select </code> for 
+more on limit. ) Do not include pitchers who started less than ten road 
+games in the season.
+
+</ol>
+
+<h3> What to turn in </h3>
+The ddl_game.sql, ddl_player.sql, ddl_team.sql, a single file with the SQL for part 2
+and the relational algebra expressions for part 2. The RA expressions can be in a separate file
+or hand written
+
+</body
+</html>

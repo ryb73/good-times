@@ -1,0 +1,45 @@
+<!--
+  - This file contains many kinds of legal things
+  - that your program must handle correctly.
+  - It should not complain about anything it doesn't understand,
+  - rather it should simple ignore such things.
+  -->
+
+<World>
+  The following room is legal:
+
+  <Room smell="bad" light="dim" name="B" denizens="scary"/>
+  
+  <World name="subworld" planet="mars">
+     <!-- these rooms should NOT show up -->
+     <Room name="X"/>     
+  </World>
+
+  <Room location="UWM" name="A">
+    Attributes can be in any order!
+    <Door dest="B" material="wood" dir="south"> 
+       normal way <Key code="0x5abefc"/> 
+       The following room should be ignored since it is in the wrong place
+       <Room name="D"/>
+    </Door>
+    <Comment>
+       <!-- This section includes doors that should NOT be added -->
+       <Door dir="north" dest="Z"> sneaky short cut </Door>
+       <Comment>
+          It&apos;s legal to nest comments.
+       </Comment>
+       The following door should ALSO be ignored
+       <Door dir="west" dest="Z"/>
+    </Comment>
+  </Room>
+
+  <Room name="Z" location="moon"/>
+
+  <Comment>
+    <!-- This section includes rooms and doors that should NOT be added -->
+    <Room name="C">
+       <Door dir="down" dest="Z"> Trap door </Door>
+    </Room>
+  </Comment>
+</World>
+

@@ -1,0 +1,5 @@
+<!-- missing height for rectangle -->
+<Drawing>
+   <Rectangle outline='black' center='(150,40)' width='35'>
+   </Rectangle>
+</Drawing>

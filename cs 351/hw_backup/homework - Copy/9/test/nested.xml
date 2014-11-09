@@ -1,0 +1,36 @@
+<Drawing>
+  <Group/>
+  <Group>
+    <Circle center='(150,150)'  radius="100" fill="black"/>
+    <Group>
+    <Circle center='(150,150)'  radius="90" fill="gray"/>
+    <Group>
+    <Circle center='(150,150)'  radius="80" fill="0x800080"/>
+   <Group>
+    <Circle center='(150,150)'  radius="70" fill="blue"/>
+   <Group>
+    <Circle center='(150,150)'  radius="60" fill="green"/>
+  <Group>
+    <Circle center='(150,150)'  radius="50" fill="yellow"/>
+    <Group>
+    <Circle center='(150,150)'  radius="40" fill="orange"/>
+    <Group>
+    <Circle center='(150,150)'  radius="30" fill="red"/>
+     <Drawing>
+    <Circle center='(150,150)'  radius="20" fill="pink"/>
+     <Group>
+         <Group/>
+    <Circle center='(150,150)'  radius="10" fill="white"/>
+    <Circle center='(150,150)' radius='2.5' fill=black/>
+ </Group>
+ </Drawing>
+ </Group>
+ </Group>
+ </Group>
+ </Group>
+    <Drawing/>
+ </Group>
+ </Group>
+ </Group>
+ </Group>
+ </Drawing>

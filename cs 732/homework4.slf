@@ -1,0 +1,327 @@
+/* CompSci 732
+ * Homework #3
+ */
+
+package edu.uwm.cs.cs732;
+
+terminals fn bound normal value var contradiction
+
+
+syntax
+
+t ::= fn x : t[x]
+    | x
+    | t t
+
+
+Gamma ::= *
+      | Gamma, x bound
+
+
+
+judgment absurd: contradiction
+
+
+judgment isvar: Gamma |- t var
+assumes Gamma
+
+----------------------- isvar-var
+Gamma, x bound |- x var
+
+
+judgment isavalue: t value
+
+---------------- val-fn
+fn x : t[x] value
+
+
+judgment equal: t = t
+
+----- eq
+t = t
+
+
+judgment any: Gamma |- t ~> t
+assumes Gamma
+
+---------------------------------- any-beta
+Gamma |- (fn x : t[x]) t' ~> t[t']
+
+Gamma |- t1 ~> t1'
+------------------------ any-app-1
+Gamma |- t1 t2 ~> t1' t2
+
+Gamma |- t2 ~> t2'
+------------------------ any-app-2
+Gamma |- t1 t2 ~> t1 t2'
+
+Gamma, x bound |- t[x] ~> t'[x]
+------------------------------------ any-inside
+Gamma |- fn x : t[x] ~> fn x : t'[x]
+
+
+judgment cbv: t -> t
+
+t' value
+----------------------- cbv-beta
+(fn x : t[x]) t' -> t[t']
+
+t1 -> t1'
+--------------- cbv-app-1
+t1 t2 -> t1' t2
+
+t1 value
+t2 -> t2'
+--------------- cbv-app-2
+t1 t2 -> t1 t2'
+
+
+judgment anys: Gamma |- t ~>* t
+assumes Gamma
+
+------- anys-refl
+Gamma |- t ~>* t
+
+Gamma |- t1 ~> t2
+Gamma |- t2 ~>* t3
+------------------- anys-recursive
+Gamma |- t1 ~>* t3
+
+
+// call by value is deterministic (Thm 3.5.4 for cbv lc)
+// (I use a lemma similar to Theorem 3.5.7)
+
+lemma value-cannot-evaluate :
+	forall e1: t value
+	forall e2: t -> t'
+	exists contradiction .
+
+	_: contradiction by case analysis on e1:
+		case rule
+			-------------------- val-fn
+			_: fn x : t2[x] value
+		is
+			_: contradiction by case analysis on e2:
+			end case analysis
+		end case
+	end case analysis
+end lemma
+
+theorem cbv-deterministic :
+    forall e': t -> t'
+    forall e'': t -> t''
+    exists t' = t'' .
+
+	_: t' = t'' by induction on e':
+		case rule
+			vt2: t2' value
+			-------------------------------- cbv-beta
+			_: (fn x : t2[x]) t2' -> t2[t2']
+		is
+			_: t2[t2'] = t'' by case analysis on e'':
+				case rule
+					_: t2' value
+					-------------------------------- cbv-beta
+					_: (fn x : t2[x]) t2' -> t2[t2']
+				is
+					_: t2[t2'] = t2[t2'] by rule eq
+				end case
+
+				case rule
+					es'': (fn x : t2[x]) -> t1'
+					-------------------------------- cbv-app-1
+					_: (fn x : t2[x]) t2' -> t1' t2'
+				is
+					_: t' = t'' by case analysis on es'':
+					end case analysis
+				end case
+
+				case rule
+					_: (fn x : t2[x]) value
+					es2'': t2' -> t2''
+					-------------------------------------------- cbv-app-2
+					_: (fn x : t2[x]) t2' -> (fn x : t2[x]) t2''
+				is
+					c: contradiction by lemma value-cannot-evaluate on vt2, es2''
+					_: t' = t'' by case analysis on c:
+					end case analysis
+				end case
+			end case analysis
+		end case
+
+		case rule
+			es': t1 -> t1'
+			--------------- cbv-app-1
+			_: t1 t2 -> t1' t2
+		is
+			_: t' = t'' by case analysis on e'':
+				case rule
+					es'': t1 -> t1''
+					------------------- cbv-app-1
+					_: t1 t2 -> t1'' t2
+				is
+					et1: t1' = t1'' by induction hypothesis on es', es''
+					_: t' = t'' by case analysis on et1:
+						case rule
+							------------ eq
+							_: t1' = t1'
+						is
+							_: t' = t'' by rule eq
+						end case
+					end case analysis
+				end case
+
+				case rule
+					vt1: t1 value
+					_: t2 -> t2'
+					------------------ cbv-app-2
+					_: t1 t2 -> t1 t2'
+				is
+					c: contradiction by lemma value-cannot-evaluate on vt1, es'
+					_: t' = t'' by case analysis on c:
+					end case analysis
+				end case
+
+				case rule
+					_: t2 value
+					----------------------- cbv-beta
+					_: (fn x : t3[x]) t2 -> t3[t2]
+				is
+					_: t' = t'' by case analysis on es':
+					end case analysis
+				end case
+			end case analysis
+		end case
+
+		case rule
+			vt1: t1 value
+			es': t2 -> t2'
+			------------------ cbv-app-2
+			_: t1 t2 -> t1 t2'
+		is
+			_: t1 t2' = t'' by case analysis on e'':
+				case rule
+					_: t1 value
+					es'': t2 -> t2''
+					------------------- cbv-app-2
+					_: t1 t2 -> t1 t2''
+				is
+					et2: t2' = t2'' by induction hypothesis on es', es''
+					_: t1 t2' = t1 t2'' by case analysis on et2:
+						case rule
+							------------ eq
+							_: t2' = t2'
+						is
+							_: t1 t2' = t1 t2' by rule eq
+						end case
+					end case analysis
+				end case
+
+				case rule
+					es'': t1 -> t1'
+					------------------ cbv-app-1
+					_: t1 t2 -> t1' t2
+				is
+					c: contradiction by lemma value-cannot-evaluate on vt1, es''
+					_: t' = t'' by case analysis on c:
+					end case analysis
+				end case
+
+				case rule
+					vt2: t2 value
+					----------------------- cbv-beta
+					_: (fn x : t3[x]) t2 -> t3[t2]
+				is
+					c: contradiction by lemma value-cannot-evaluate on vt2, es'
+					_: t' = t'' by case analysis on c:
+					end case analysis
+				end case
+			end case analysis
+		end case
+	end induction
+end theorem
+
+// omega never terminates.
+// (I use a helper lemma to reduce size of proof.)
+
+lemma fn-normal:
+	forall e: Gamma |- (fn x: (x x)) ~> t
+	exists contradiction .
+
+	_: contradiction by case analysis on e:
+		case rule
+			es: Gamma, x bound |- (x x) ~> t2'[x]
+			------------------------------------ any-inside
+			_: Gamma |- (fn x : (x x)) ~> fn x : t2'[x]
+		is
+			_: contradiction by case analysis on es:
+				case rule
+					es2: Gamma, x bound |- x ~> t3[x]
+					--------------------------------------- any-app-1
+					_: Gamma, x bound |- (x x) ~> (t3[x] x)
+				is
+					_: contradiction by case analysis on es2:
+					end case analysis
+				end case
+
+				case rule
+					es2: Gamma, x bound |- x ~> t3[x]
+					--------------------------- any-app-2
+					_: Gamma, x bound |- (x x) ~> (x t3[x])
+				is
+					_: contradiction by case analysis on es2:
+					end case analysis
+				end case
+			end case analysis
+		end case
+	end case analysis
+end lemma
+
+theorem omega-never-terminates :
+    forall as: Gamma |- ((fn x: (x x))(fn x: (x x))) ~>* t
+    forall v : t value
+    exists contradiction .
+
+	_: contradiction by induction on as:
+		case rule
+			------------------- anys-refl
+			_: Gamma |- t ~>* t
+		is
+			_: contradiction by case analysis on v:
+			end case analysis
+		end case
+
+		case rule
+			as1: Gamma |- ((fn x: (x x))(fn x: (x x))) ~> t'
+			as2: Gamma |- t' ~>* t
+			------------------------------------------------ anys-recursive
+			_: Gamma |- ((fn x: (x x))(fn x: (x x))) ~>* t
+		is
+			_: contradiction by case analysis on as1:
+				case rule
+					----------------------------------------- any-beta
+					_: Gamma |- (fn x : t2[x]) t'' ~> t2[t'']
+				is
+					_: contradiction by induction hypothesis on as2, v
+				end case
+
+				case rule
+					ev: Gamma |- (fn x: (x x)) ~> t1'
+					-------------------------------------- any-app-1
+					_: Gamma |- (fn x: (x x)) (fn x: (x x)) ~> t1' (fn x: (x x))
+				is
+					_: contradiction by lemma fn-normal on ev
+				end case
+
+				case rule
+					ev: Gamma |- (fn x: (x x)) ~> t2'
+					-------------------------------------- any-app-2
+					_: Gamma |- (fn x: (x x)) (fn x: (x x)) ~> (fn x: (x x)) t2'
+				is
+					_: contradiction by lemma fn-normal on ev
+				end case
+			end case analysis
+		end case
+	end induction
+end theorem
+

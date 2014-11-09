@@ -1,0 +1,635 @@
+/* CompSci 732
+ * Fall 2011
+ * Homework #11
+ */
+
+package edu.uwm.cs.cs732;
+
+terminals contradiction value in fn All
+
+
+syntax
+
+t ::= fn x:T => t[x]
+  | x
+  | t t
+  | fn X => t[X]
+  | t T   // t(T)
+
+T ::= T -> T
+  | All X => T[X]
+  | X
+
+Gamma ::= *
+      | Gamma, x : T
+	  | Gamma, X
+
+
+
+judgment absurd: contradiction
+
+
+judgment equality: t == t
+
+------ eq
+t == t
+
+
+judgment typeequality: T == T
+
+------ type-eq
+T == T
+
+
+judgment isavalue: Gamma |- t value
+assumes Gamma
+
+----------------------------- val-fn
+Gamma |- fn x:T => t[x] value
+
+--------------------------- val-at
+Gamma |- fn X => t[X] value
+
+
+judgment eval: t -> t
+
+t1 -> t1'
+--------------- E-App1
+t1 t2 -> t1' t2
+
+Gamma |- t1 value
+t2 -> t2'
+--------------- E-App2
+t1 t2 -> t1 t2'
+
+Gamma |- t2 value
+------------------------------ E-AppAbs
+(fn x:T => t1[x]) t2 -> t1[t2]
+
+t -> t'
+------------- E-TApp
+t(T) -> t'(T)
+
+------------------------- E-TAppTAbs
+(fn X => t[X])(T) -> t[T]
+
+
+judgment notstuck: t ->?
+
+Gamma |- t value
+------- ns-value
+t ->?
+
+t -> t'
+------- ns-eval
+t ->?
+
+
+
+judgment isvar: t : T in Gamma
+assumes Gamma
+
+----------------------- var
+x : T in (Gamma, x : T)
+
+
+judgment type: Gamma |- t : T
+assumes Gamma
+
+t : T in Gamma
+-------------- T-Var
+Gamma |- t : T
+
+Gamma, x : T1 |- t[x] : T2
+------------------------------------- T-Abs
+Gamma |- (fn x:T1 => t[x]) : T1 -> T2
+
+Gamma |- t1 : T2 -> T1
+Gamma |- t2 : T2
+----------------------- T-App
+Gamma |- t1 t2 : T1
+
+Gamma, X |- t[X] : T[X]
+--------------------------------------- T-TAbs
+Gamma |- (fn X => t[X]) : All X => T[X]
+
+Gamma |- t : All X => T1[X]
+--------------------------------- T-TApp
+Gamma |- t(T2) : T1[T2]
+
+
+judgment hastype: Gamma |- T
+assumes Gamma
+
+------------- B-Var
+Gamma, X |- X
+
+Gamma |- T1
+Gamma |- T2
+----------------- B-Arrow
+Gamma |- T1 -> T2
+
+Gamma, X |- T[X]
+---------------------- B-All
+Gamma |- All X => T[X]
+
+
+judgment canonical: Gamma |- t value : T
+assumes Gamma
+
+Gamma, x:T1 |- t[x] : T2
+------------------------------------------- canonical-fn
+Gamma |- (fn x:T1 => t[x]) value : T1 -> T2
+
+Gamma, X |- t[X] : T[X]
+--------------------------------------------- canonical-at
+Gamma |- (fn X => t[X]) value : All X => T[X]
+
+
+
+lemma type-bound:
+    forall T assumes Gamma
+    exists Gamma |- T.
+    _: Gamma |- T by induction on T:
+	case X assumes Gamma', X is
+	    _: Gamma',X |- X by rule B-Var
+	end case
+	case T1 -> T2 is
+	    b1: Gamma |- T1 by induction hypothesis on T1
+	    b2: Gamma |- T2 by induction hypothesis on T2
+	    _: Gamma |- T1 -> T2 by rule B-Arrow on b1,b2
+	end case
+	case All X => T1[X] is
+	    b1: Gamma,X |- T1[X] 
+		    by induction hypothesis on (T1[X] assumes Gamma,X)
+	    _: Gamma |- All X => T1[X] by rule B-All on b1
+	end case
+    end induction
+end lemma
+
+
+lemma type-subst:
+    forall d: Gamma, X |- t[X] : T1[X]
+    forall T2 assumes Gamma
+    exists Gamma |- t[T2] : T1[T2].
+    b : Gamma |- T2 by lemma type-bound on T2
+    _: Gamma |- t[T2] : T1[T2] by substitution on d,b
+end lemma
+
+
+lemma canonical-forms :
+    forall d: Gamma |- t : T
+    forall v: Gamma |- t value
+    exists Gamma |- t value : T .
+    _ : Gamma |- t value : T by induction on v:
+	case rule
+	    --------------------------- val-fn
+	    _: Gamma |- (fn x:T1 => t1[x]) value
+	is
+	    _ : Gamma |- t value : T by case analysis on d:
+		case rule
+		    d1: Gamma, x : T1 |- t1[x] : T2
+		    --------------------------------------- T-Abs
+		    _: Gamma |- fn x:T1 => t2[x] : T1 -> T2
+		is
+		    _: Gamma |- fn x:T1 => t2[x] value : T1 -> T2
+			    by rule canonical-fn on d1
+		end case
+		case rule
+		    v: fn x:T1 => t2[x] : T in Gamma
+		    -------------------------------- T-Var
+		    _: Gamma |- fn x:T1 => t2[x] : T
+		is
+		    _: Gamma |- t value : T by case analysis on v:
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+		---------------------- val-at
+		_: Gamma |- fn X => t'[X] value
+	is
+		proof by case analysis on d:
+			case rule
+				i: t : T in Gamma
+				----------------- T-Var
+				_: Gamma |- t : T
+			is
+				proof by case analysis on i:
+				end case analysis
+			end case
+
+			case rule
+				d': Gamma, X |- t'[X] : T'[X]
+				-------------------------------------------- T-TAbs
+				_: Gamma |- (fn X => t'[X]) : All X => T'[X]
+			is
+				proof by rule canonical-at on d'
+			end case
+		end case analysis
+	end case
+
+    end induction
+end lemma
+
+
+// sometimes we need to unpack canonical forms too:
+lemma canonical-implies-typed :
+    forall c: Gamma |- t value : T
+    exists Gamma |- t : T .
+    _: Gamma |- t : T by induction on c:
+	case rule
+	    d1: Gamma, x:T1 |- t1[x] : T2
+	    ------------------------------------------------ canonical-fn
+	    _ : Gamma |- (fn x:T1 => t1[x]) value : T1 -> T2
+	is
+	    _ : Gamma |- (fn x:T1 => t1[x]) : T1 -> T2 by rule T-Abs on d1
+	end case
+
+	case rule
+		d1: Gamma, X |- t1[X] : T1[X]
+		-------------------------------------------------- canonical-at
+		_: Gamma |- (fn X => t1[X]) value : All X => T1[X]
+	is
+		proof by rule T-TAbs on d1
+	end case
+
+    end induction
+end lemma
+
+
+
+lemma canonical-implies-value :
+    forall c: Gamma |- t value : T
+    exists Gamma |- t value .
+    _: Gamma |- t value by induction on c:
+	case rule
+	    d1: Gamma, x:T1 |- t1[x] : T2
+	    ------------------------------------------------ canonical-fn
+	    _ : Gamma |- (fn x:T1 => t1[x]) value : T1 -> T2
+	is
+	    _: Gamma |- (fn x:T1 => t1[x]) value by rule val-fn
+	end case
+
+	case rule
+		_: Gamma, X |- t1[X] : T1[X]
+		-------------------------------------------------- canonical-at
+		_: Gamma |- (fn X => t1[X]) value : All X => T1[X]
+	is
+		proof by rule val-at
+	end case
+
+    end induction
+end lemma
+
+
+theorem progress :
+    forall d: * |- t : T
+    exists t ->? .
+    _ : t ->? by induction on d:
+	case rule
+	    v: t : T in *
+	    ------------- T-Var
+	    _: * |- t : T
+	is
+	    _: t ->? by case analysis on v:
+	    end case analysis
+	end case
+
+	case rule
+	    d1: *, x:T1 |- t1[x] : T2
+	    ------------------------------------ T-Abs
+	    _ : * |- fn x:T1 => t1[x] : T1 -> T2
+	is
+	    v : * |- fn x:T1 => t1[x] value by rule val-fn
+	    _ : t ->? by rule ns-value on v
+	end case
+
+	case rule
+	    d1: * |- t1 : T2 -> T1
+	    d2: * |- t2 : T2
+	    ---------------------- T-App
+	    _: * |- t1 t2 : T1
+	is
+	    ns1: t1 ->? by induction hypothesis on d1
+	    ns2: t2 ->? by induction hypothesis on d2
+	    _ : t1 t2 ->? by case analysis on ns1:
+		case rule
+		    e1: t1 -> t1'
+		    ------------- ns-eval
+		    _ : t1 ->?
+		is
+		    e: t1 t2 -> t1' t2 by rule E-App1 on e1
+		    _: t1 t2 ->? by rule ns-eval on e
+		end case
+		case rule
+		    v1: Gamma |- t1 value
+		    ------------ ns-value
+		    _ : t1 ->?
+		is
+		    _ : t1 t2 ->? by case analysis on ns2:
+			case rule
+			    e2: t2 -> t2'
+			    ------------- ns-eval
+			    _ : t2 ->?
+			is
+			    e: t1 t2 -> t1 t2' by rule E-App2 on v1,e2
+			    _: t1 t2 ->? by rule ns-eval on e
+			end case
+			case rule
+			    v2: Gamma |- t2 value
+			    ------------ ns-value
+			    _ : t2 ->?
+			is
+			    c: * |- t1 value : T2 -> T1 
+				    by lemma canonical-forms on d1,v1
+			    _ : t1 t2 ->? by case analysis on c:
+				case rule
+				    _: *, x:T2 |- t11[x] : T1
+				    ----------------------------- canonical-fn
+				    _: * |- fn x:T2 => t11[x] value : T2 -> T1
+				is
+				    e: t1 t2 -> t11[t2] by rule E-AppAbs on v2
+				    _: t1 t2 ->? by rule ns-eval on e
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+		_: *, X |- t1[X] : T1[X]
+		--------------------------------------- T-TAbs
+		_: * |- (fn X => t1[X]) : All X => T1[X]
+	is
+		ns: Gamma |- fn X => t1[X] value by rule val-at
+		proof by rule ns-value on ns
+	end case
+
+	case rule
+		d1: * |- t1 : All X => T1[X]
+		--------------------------------- T-TApp
+		_: * |- t1(T2) : T1[T2]
+	is
+		ns1: t1 ->? by induction hypothesis on d1
+		proof by case analysis on ns1:
+			case rule
+				v1: Gamma |- t1 value
+				------------ ns-value
+				_: t1 ->?
+			is
+				proof by case analysis on v1:
+					case rule
+						------------------------- val-fn
+						_: Gamma |- fn x:T3 => t3[x] value
+					is
+						proof by case analysis on d1:
+							case rule
+								i: t1 : All X => T1[X] in *
+								------------------------------- T-Var
+								_: * |- t1 : All X => T1[X]
+							is
+								proof by case analysis on i:
+								end case analysis
+							end case
+						end case analysis
+					end case
+
+					case rule
+						---------------------- val-at
+						_: Gamma |- fn X => t2[X] value
+					is
+						e: (fn X => t2[X])(T2) -> t2[T2] by rule E-TAppTAbs
+						_: (fn X => t2[X])(T2) ->? by rule ns-eval on e
+					end case
+				end case analysis
+			end case
+
+			case rule
+				e1: t1 -> t1'
+				------------- ns-eval
+				_: t1 ->?
+			is
+				e: t1(T2) -> t1'(T2) by rule E-TApp on e1
+				proof by rule ns-eval on e
+			end case
+		end case analysis
+	end case
+
+    end induction
+end theorem
+
+
+lemma subst :
+    forall d1: Gamma, x : T2 |- t1[x] : T1
+    forall d2: Gamma |- t2 : T2
+    exists Gamma |- t1[t2] : T1 .
+    _ : Gamma |- t1[t2] : T1 by induction on d1:
+
+	case rule
+	    v: t1[x] : T1 in (Gamma, x:T2)
+	    ------------------------------- T-Var
+	    _: Gamma, x:T2 |- t1[x] : T1
+	is
+	    _: Gamma |- t1[t2] : T1 by case analysis on v:
+		case rule
+		    ------------------------ var
+		    _: x:T2 in (Gamma, x:T2)
+		is
+		    _: Gamma |- t2 : T2 by d2
+		end case
+		case rule
+		    --------------------------------- var
+		    _: x':T' in (Gamma', x':T', x:T2)
+		is
+		    v': x':T' in (Gamma', x':T') by rule var
+		    _: Gamma', x':T' |- x':T' by rule T-Var on v'
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    d11: Gamma, x : T2, x' : T2' |- t11[x][x'] : T1'
+	    ------------------------------------------------------------ T-Abs
+	    _  : Gamma, x : T2 |- (fn x':T2' => t11[x][x']) : T2' -> T1'
+	is
+	    d11r : Gamma, x' : T2', x : T2 |- t11[x][x'] : T1' 
+		    by exchange on d11
+	    d2' : Gamma, x' : T2' |- t2 : T2
+		    by weakening on d2
+	    d11': Gamma, x' : T2' |- t11[t2][x'] : T1' 
+		    by induction hypothesis on d11r,d2'
+	    _: Gamma |- (fn x':T2' => t11[t2][x']) : T2' -> T1' 
+		    by rule T-Abs on d11'	    
+	end case
+
+	case rule
+	    d11: Gamma, x : T2 |- t11[x] : T12 -> T
+	    d12: Gamma, x : T2 |- t12[x] : T12
+	    --------------------------------------- T-App
+	    _  : Gamma, x : T2 |- t11[x] t12[x] : T
+	is
+	    d11': Gamma |- t11[t2] : T12 -> T by induction hypothesis on d11,d2
+	    d12': Gamma |- t12[t2] : T12 by induction hypothesis on d12,d2
+	    _   : Gamma |- t11[t2] t12[t2] : T by rule T-App on d11',d12'
+	end case
+
+	case rule
+		d1a: Gamma, x:T2, X |- t[X][x] : T[X]
+		--------------------------------------------------- T-TAbs
+		_  : Gamma, x:T2 |- (fn X => t[X][x]) : All X => T[X]
+	is
+		d1b: Gamma, X, x:T2 |- t[X][x] : T[X] by exchange on d1a
+		d2': Gamma, X |- t2 : T2 by weakening on d2
+		d  : Gamma, X |- t[X][t2] : T[X] by induction hypothesis on d1b, d2'
+		proof by rule T-TAbs on d
+	end case
+
+	case rule
+		d1a: Gamma, x:T2 |- t[x] : All X => T3[X]
+		----------------------------------------- T-TApp
+		_  : Gamma, x:T2 |- t[x](T4) : T3[T4]
+	is
+		d1b: Gamma |- t[t2] : All X => T3[X] by induction hypothesis on d1a, d2
+		proof by rule T-TApp on d1b
+	end case
+
+    end induction
+end theorem
+
+
+theorem preservation :
+    forall d: Gamma |- t : T
+    forall e: t -> t'
+    exists Gamma |- t' : T .
+    _ : Gamma |- t' : T by induction on d:
+	case rule
+	    v: t : T in Gamma
+	    ----------------- T-Var
+	    _: Gamma |- t : T
+	is
+	    _: Gamma |- t' : T by case analysis on v:
+		case rule
+		    ----------------------- var
+		    _: x':T in Gamma', x':T
+		is
+		    _: Gamma |- t' : T by case analysis on e:
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    _: Gamma, x : T1 |- t1[x] : T2
+	    ---------------------------------------- T-Abs
+	    _: Gamma |- (fn x:T1 => t1[x]) : T1 -> T2
+	is
+	    _: Gamma |- t' : T by case analysis on e:
+	    end case analysis
+	end case
+
+	case rule
+	    d1: Gamma |- t1 : T2 -> T1
+	    d2: Gamma |- t2 : T2
+	    --------------------------- T-App
+	    _ : Gamma |- t1 t2 : T1
+	is
+	    _: Gamma |- t' : T by case analysis on e:
+		case rule
+		    e1: t1 -> t1'
+		    ------------------- E-App1
+		    _ : t1 t2 -> t1' t2
+		is
+		    d1': Gamma |- t1' : T2 -> T1 
+			    by induction hypothesis on d1,e1
+		    _  : Gamma |- t1' t2 : T1 by rule T-App on d1',d2
+		end case
+		case rule
+		    _ : Gamma |- t1 value
+		    e2: t2 -> t2'
+		    ------------------- E-App2
+		    _ : t1 t2 -> t1 t2'
+		is
+		    d2': Gamma |- t2' : T2
+			    by induction hypothesis on d2,e2
+		    _  : Gamma |- t1 t2' : T1 by rule T-App on d1,d2'
+		end case
+		case rule
+		    _: Gamma |- t2 value
+		    ------------------------------------- E-AppAbs
+		    _: (fn x:T2' => t11[x]) t2 -> t11[t2]
+		is
+		    v1: Gamma |- (fn x:T2' => t11[x]) value by rule val-fn
+		    cf: Gamma |- (fn x:T2' => t11[x]) value : T2 -> T1
+			    by lemma canonical-forms on d1,v1
+		    _ : Gamma |- t11[t2] : T1 by case analysis on cf:
+			case rule
+			    d11: Gamma, x:T2 |- t11[x] : T1
+			    --------------------------------- canonical-fn
+			    _: Gamma |- (fn x:T2 => t11[x]) value : T2 -> T1
+			is
+			    _: Gamma |- t11[t2] : T1 
+				    by lemma subst on d11,d2
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+		_: Gamma, X |- t1[X] : T1[X]
+		-------------------------------------------- T-TAbs
+		_: Gamma |- (fn X => t1[X]) : All X => T1[X]
+	is
+		proof by case analysis on e:
+		end case analysis
+	end case
+
+	case rule
+		d1: Gamma |- t1 : All X => T1[X]
+		--------------------------------- T-TApp
+		_: Gamma |- t1(T2) : T1[T2]
+	is
+		proof by case analysis on e:
+			case rule
+				e1: t1 -> t1'
+				------------------ E-TApp
+				_: t1(T2) -> t1'(T2)
+			is
+				d1': Gamma |- t1' : All X => T1[X] by induction hypothesis on d1, e1
+				proof by rule T-TApp on d1'
+			end case
+
+			case rule
+				-------------------------------- E-TAppTAbs
+				_: (fn X => t2[X])(T2) -> t2[T2]
+			is
+				proof by case analysis on d1:
+					case rule
+						i: t1 : All X => T1[X] in Gamma
+						------------------------------- T-Var
+						_: Gamma |- t1 : All X => T1[X]
+					is
+						proof by case analysis on i:
+						end case analysis
+					end case
+
+					case rule
+						d2: Gamma, X |- t2[X] : T1[X]
+						-------------------------------------------- T-TAbs
+						_: Gamma |- (fn X => t2[X]) : All X => T1[X]
+					is
+						proof by lemma type-subst on d2, T2
+					end case
+				end case analysis
+			end case
+		end case analysis
+	end case
+
+    end induction
+end theorem
+
+

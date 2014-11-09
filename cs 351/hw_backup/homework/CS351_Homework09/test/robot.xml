@@ -1,0 +1,10 @@
+
+<Drawing>
+  <Circle radius='100' center='(150,150)' fill='yellow' outline="black"/>
+  <Group>
+     <Circle radius="20" center='(120,120)' fill='black'/>
+     <Circle center="(180,120)" fill="black" radius="20">
+     </Circle>
+  </Group>
+  <Rectangle center='(150,190)' width='150' height='10' outline="blue"/>
+</Drawing>

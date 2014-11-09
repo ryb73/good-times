@@ -1,0 +1,835 @@
+/* CompSci 732
+ * Fall 2011
+ * Homework #6
+ */
+
+package edu.uwm.cs.cs732;
+
+terminals contradiction true false if then else value
+          Bool in fn
+
+
+syntax
+
+t ::= true 
+  | false
+  | if t then t else t
+  | fn x:T => t[x]
+  | x
+  | t t
+
+T ::= Bool
+  | T -> T
+
+Gamma ::= *
+      | Gamma, x : T
+
+
+judgment absurd: contradiction
+
+
+judgment equality: t == t
+
+------ eq
+t == t
+
+
+judgment typeequality: T == T
+
+------ type-eq
+T == T
+
+
+judgment isavalue: t value
+
+
+-------------------- val-fn
+fn x:T => t[x] value
+
+--------------- val-true
+true value
+
+---------------- val-false
+false value
+
+
+judgment eval: t -> t
+
+----------------------------- E-IfTrue
+if true then t1 else t2 -> t1
+
+------------------------------ E-IfFalse
+if false then t1 else t2 -> t2
+
+t1 -> t1'
+----------------------------------------------- E-If
+if t1 then t2 else t3 -> if t1' then t2 else t3
+
+t1 -> t1'
+--------------- E-App1
+t1 t2 -> t1' t2
+
+t1 value
+t2 -> t2'
+--------------- E-App2
+t1 t2 -> t1 t2'
+
+t2 value
+------------------------------ E-AppAbs
+(fn x:T => t1[x]) t2 -> t1[t2]
+
+
+judgment notstuck: t ->?
+
+t value
+------- ns-value
+t ->?
+
+t -> t'
+------- ns-eval
+t ->?
+
+
+judgment isvar: t : T in Gamma
+assumes Gamma
+
+----------------------- var
+x : T in (Gamma, x : T)
+
+
+judgment type: Gamma |- t : T
+assumes Gamma
+
+-------------------- T-True
+Gamma |- true : Bool
+
+--------------------- T-False
+Gamma |- false : Bool
+
+Gamma |- t1 : Bool
+Gamma |- t2 : T
+Gamma |- t3 : T
+---------------------------------- T-If
+Gamma |- if t1 then t2 else t3 : T
+
+t : T in Gamma
+-------------- T-Var
+Gamma |- t : T
+
+Gamma, x : T1 |- t[x] : T2
+------------------------------------- T-Abs
+Gamma |- (fn x:T1 => t[x]) : T1 -> T2
+
+Gamma |- t1 : T2 -> T1
+Gamma |- t2 : T2
+----------------------- T-App
+Gamma |- t1 t2 : T1
+
+
+judgment canonical: Gamma |- t value : T
+assumes Gamma
+
+--------------------------- canonical-true
+Gamma |- true value : Bool
+
+--------------------------- canonical-false
+Gamma |- false value : Bool
+
+Gamma, x:T1 |- t[x] : T2
+------------------------------------------- canonical-fn
+Gamma |- (fn x:T1 => t[x]) value : T1 -> T2
+
+
+// Lemma 9.3.4
+lemma canonical-forms :
+    forall d: Gamma |- t : T
+    forall v: t value
+    exists Gamma |- t value : T .
+    _ : Gamma |- t value : T by case analysis on v:
+	case rule
+	    ------------- val-true
+	    _: true value
+	is
+	    _ : Gamma |- t value : T by case analysis on d:
+		case rule
+		    ----------------------- T-True
+		    _: Gamma |- true : Bool
+		is
+		    _: Gamma |- true value : Bool by rule canonical-true
+		end case
+		case rule
+		    v: true : T in Gamma
+		    -------------------- T-Var
+		    _: Gamma |- true : T
+		is
+		    _: Gamma |- true value : T by case analysis on v:
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    ------------- val-false
+	    _: false value
+	is
+	    _ : Gamma |- t value : T by case analysis on d:
+		case rule
+		    ----------------------- T-False
+		    _: Gamma |- false : Bool
+		is
+		    _: Gamma |- false value : Bool by rule canonical-false
+		end case
+		case rule
+		    v: false : T in Gamma
+		    -------------------- T-Var
+		    _: Gamma |- false : T
+		is
+		    _: Gamma |- false value : T by case analysis on v:
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    --------------------------- val-fn
+	    _: (fn x:T1 => t1[x]) value
+	is
+	    _ : Gamma |- t value : T by case analysis on d:
+		case rule
+		    d1: Gamma, x : T1 |- t1[x] : T2
+		    --------------------------------------- T-Abs
+		    _: Gamma |- fn x:T1 => t2[x] : T1 -> T2
+		is
+		    _: Gamma |- fn x:T1 => t2[x] value : T1 -> T2
+			    by rule canonical-fn on d1
+		end case
+		case rule
+		    v: fn x:T1 => t2[x] : T in Gamma
+		    -------------------------------- T-Var
+		    _: Gamma |- fn x:T1 => t2[x] : T
+		is
+		    _: Gamma |- t value : T by case analysis on v:
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+    end case analysis
+end lemma
+
+// Thm 3.5.4 modified for functions
+theorem value-eval-contradiction:
+    forall v: t value
+    forall e: t -> t'
+    exists contradiction.
+
+    _ : contradiction by case analysis on v:
+		case rule
+			----------------------- val-fn
+			_: fn x:T => t1[x] value
+		is
+			_: contradiction by case analysis on e:
+			end case analysis
+		end case
+
+		case rule
+			--------------- val-true
+			_: true value
+		is
+			_: contradiction by case analysis on e:
+			end case analysis
+		end case
+
+		case rule
+			--------------- val-false
+			_: false value
+		is
+			_: contradiction by case analysis on e:
+			end case analysis
+		end case
+	end case analysis
+end theorem
+
+
+// Theorem 9.3.3 (needed for 9.3.2)
+theorem uniqueness-of-types :
+    forall d1: Gamma |- t : T1
+    forall d2: Gamma |- t : T2
+    exists T1 == T2 .
+
+    _: T1 == T2 by induction on d1:
+		case rule
+			-------------------- T-True
+			_: Gamma |- true : Bool
+		is
+			v: t value by rule val-true
+			c: Gamma |- t value : T2 by lemma canonical-forms on d2, v
+			_: Bool == T2 by case analysis on c:
+				case rule
+					----------------------------- canonical-true
+					_: Gamma |- true value : Bool
+				is
+					_: Bool == Bool by rule type-eq
+				end case
+			end case analysis
+		end case
+
+		case rule
+			-------------------- T-False
+			_: Gamma |- false : Bool
+		is
+			v: t value by rule val-false
+			c: Gamma |- t value : T2 by lemma canonical-forms on d2, v
+			_: Bool == T2 by case analysis on c:
+				case rule
+					----------------------------- canonical-false
+					_: Gamma |- false value : Bool
+				is
+					_: Bool == Bool by rule type-eq
+				end case
+			end case analysis
+		end case
+
+		case rule
+			_:   Gamma |- t1 : Bool
+			d2a: Gamma |- t2 : T1
+			_:   Gamma |- t3 : T1
+			---------------------------------------- T-If
+			_:   Gamma |- if t1 then t2 else t3 : T1
+		is
+			_: T1 == T2 by case analysis on d2:
+				case rule
+					_:   Gamma |- t1 : Bool
+					d2b: Gamma |- t2 : T2
+					_:   Gamma |- t3 : T2
+					-------------------------------------- T-If
+					_: Gamma |- if t1 then t2 else t3 : T2
+				is
+					_: T1 == T2 by induction hypothesis on d2a, d2b
+				end case
+
+				case rule
+					i: t : T2 in Gamma
+					------------------ T-Var
+					_: Gamma |- t : T2
+				is
+					_: T1 == T2 by case analysis on i:
+					end case analysis
+				end case
+			end case analysis
+		end case
+
+		case rule
+			i1: t : T1 in Gamma
+			------------------- T-Var
+			_: Gamma |- t : T1
+		is
+			_: T1 == T2 by case analysis on i1:
+				case rule
+					-------------------------- var
+					_: x : T1 in (Gamma', x : T1)
+				is
+					_: T1 == T2 by case analysis on d2:
+						case rule
+							i2: x : T2 in Gamma', x:T1
+							-------------------------- T-Var
+							_: Gamma', x:T1 |- x : T2
+						is
+							_: T1 == T2 by case analysis on i2:
+								case rule
+									---------------------------- var
+									_: x : T1 in (Gamma', x : T1)
+								is
+									_: T1 == T1 by rule type-eq
+								end case
+							end case analysis
+						end case
+					end case analysis
+				end case
+			end case analysis
+		end case
+
+		case rule
+			d1': Gamma, x : T |- t'[x] : T1'
+			---------------------------------------- T-Abs
+			_: Gamma |- (fn x:T => t'[x]) : T -> T1'
+		is
+			_: T1 == T2 by case analysis on d2:
+				case rule
+					d2': Gamma, x : T |- t'[x] : T2'
+					---------------------------------------- T-Abs
+					_: Gamma |- (fn x:T => t'[x]) : T -> T2'
+				is
+					e': T1' == T2' by induction hypothesis on d1', d2'
+					_: T -> T1' == T -> T2' by case analysis on e':
+						case rule
+							------------- type-eq
+							_: T1' == T1'
+						is
+							_: T -> T1' == T -> T1' by rule type-eq
+						end case
+					end case analysis
+				end case
+
+				case rule
+					i: t : T2 in Gamma
+					------------------ T-Var
+					_: Gamma |- t : T2
+				is
+					_: T1 == T2 by case analysis on i:
+					end case analysis
+				end case
+			end case analysis
+		end case
+
+		case rule
+			d1': Gamma |- t1 : T1' -> T1
+			_: Gamma |- t2 : T1'
+			---------------------------- T-App
+			_: Gamma |- t1 t2 : T1
+		is
+			_: T1 == T2 by case analysis on d2:
+				case rule
+					d2': Gamma |- t1 : T2' -> T2
+					_: Gamma |- t2 : T2'
+					---------------------------- T-App
+					_: Gamma |- t1 t2 : T2
+				is
+					e': T1' -> T1 == T2' -> T2 by induction hypothesis on d1', d2'
+					_: T1 == T2 by case analysis on e':
+						case rule
+							------------------------- type-eq
+							_: T1' -> T1 == T1' -> T1
+						is
+							_: T1 == T1 by rule type-eq
+						end case
+					end case analysis
+				end case
+
+				case rule
+					i: t : T2 in Gamma
+					------------------ T-Var
+					_: Gamma |- t : T2
+				is
+					_: T1 == T2 by case analysis on i:
+					end case analysis
+				end case
+			end case analysis
+		end case
+	end induction
+end theorem
+
+
+// Exercise 9.3.2
+theorem self-application-not-typed :
+    forall d: Gamma |- t t : T
+    exists contradiction .
+
+	_: contradiction by case analysis on d:
+		case rule
+			i: t1 : T in Gamma
+			-------------------- T-Var
+			_: Gamma |- t1 : T
+		is
+			_: contradiction by case analysis on i:
+			end case analysis
+		end case
+
+		case rule
+			d1: Gamma |- t : T2 -> T
+			d2: Gamma |- t : T2
+			------------------------ T-App
+			_: Gamma |- t t : T
+		is
+			e: T2 -> T == T2 by theorem uniqueness-of-types on d1, d2
+			_: contradiction by case analysis on e:
+			end case analysis
+		end case
+	end case analysis
+end theorem
+
+
+
+// Theorem 9.3.5
+theorem progress :
+    forall d: * |- t : T
+    exists t ->? .
+    _ : t ->? by induction on d:
+	case rule
+	    ------------------ T-True
+	    _: * |- true : Bool
+	is
+	    v: true value by rule val-true
+	    _: true ->? by rule ns-value on v
+	end case
+
+	case rule
+	    -------------------- T-False
+	    _: * |- false : Bool
+	is
+	    v: false value by rule val-false
+	    _: false ->? by rule ns-value on v
+	end case
+
+	case rule
+	    d1: * |- t1 : Bool
+	    d2: * |- t2 : T
+	    d3: * |- t3 : T
+	    --------------------------------- T-If
+	    _: * |- if t1 then t2 else t3 : T
+	is
+	    ns1: t1 ->? by induction hypothesis on d1
+	    _ : t ->? by case analysis on ns1:
+		case rule
+		    v1: t1 value
+		    ------------ ns-value
+		    _ : t1 ->?
+		is
+		    _ : t ->? by case analysis on v1:
+			case rule
+			    ------------- val-true
+			    _: true value
+			is
+			    e: if true then t2 else t3 -> t2 by rule E-IfTrue
+			    ns: if true then t2 else t3 ->? 
+				    by rule ns-eval on e
+			end case
+			case rule
+			    ------------- val-false
+			    _: false value
+			is
+			    e: if false then t2 else t3 -> t3 by rule E-IfFalse
+			    ns: if false then t2 else t3 ->? 
+				    by rule ns-eval on e
+			end case
+			case rule
+			    ---------------------------- val-fn
+			    _: (fn x:T1 => t11[x]) value
+			is
+			    _ : t ->? by case analysis on d1:
+				case rule
+				    v: (fn x:T1 => t11[x]) : Bool in *
+				    ----------------------------------- T-Var
+				    _: * |- (fn x:T1 => t11[x]) : Bool
+				is
+				    _ : t ->? by case analysis on v:
+				    end case analysis
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+		case rule
+		    e1: t1 -> t1'
+		    ------------- ns-eval
+		    _: t1 ->?
+		is
+		    e: if t1 then t2 else t3 -> if t1' then t2 else t3
+			    by rule E-If on e1
+		    _: if t1 then t2 else t3 ->? by rule ns-eval on e
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    v: t : T in *
+	    ------------- T-Var
+	    _: * |- t : T
+	is
+	    _: t ->? by case analysis on v:
+	    end case analysis
+	end case
+
+	case rule
+	    d1: *, x:T1 |- t1[x] : T2
+	    ------------------------------------ T-Abs
+	    _ : * |- fn x:T1 => t1[x] : T1 -> T2
+	is
+	    v : fn x:T1 => t1[x] value by rule val-fn
+	    _ : t ->? by rule ns-value on v
+	end case
+
+	case rule
+	    d1: * |- t1 : T2 -> T1
+	    d2: * |- t2 : T2
+	    ---------------------- T-App
+	    _: * |- t1 t2 : T1
+	is
+	    ns1: t1 ->? by induction hypothesis on d1
+	    ns2: t2 ->? by induction hypothesis on d2
+	    _ : t1 t2 ->? by case analysis on ns1:
+		case rule
+		    e1: t1 -> t1'
+		    ------------- ns-eval
+		    _ : t1 ->?
+		is
+		    e: t1 t2 -> t1' t2 by rule E-App1 on e1
+		    _: t1 t2 ->? by rule ns-eval on e
+		end case
+		case rule
+		    v1: t1 value
+		    ------------ ns-value
+		    _ : t1 ->?
+		is
+		    _ : t1 t2 ->? by case analysis on ns2:
+			case rule
+			    e2: t2 -> t2'
+			    ------------- ns-eval
+			    _ : t2 ->?
+			is
+			    e: t1 t2 -> t1 t2' by rule E-App2 on v1,e2
+			    _: t1 t2 ->? by rule ns-eval on e
+			end case
+			case rule
+			    v2: t2 value
+			    ------------ ns-value
+			    _ : t2 ->?
+			is
+			    c: Gamma |- t1 value : T2 -> T1 
+				    by lemma canonical-forms on d1,v1
+			    _ : t1 t2 ->? by case analysis on c:
+				case rule
+				    _: *, x:T2 |- t11[x] : T1
+				    ----------------------------- canonical-fn
+				    _: * |- fn x:T2 => t11[x] value : T2 -> T1
+				is
+				    e: t1 t2 -> t11[t2] by rule E-AppAbs on v2
+				    _: t1 t2 ->? by rule ns-eval on e
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+    end induction
+end theorem
+
+
+// Lemma 9.3.6 and 9.3.7 are called "exchange" and "weakening"
+// respectively and are built-in SASyLF primitives.
+//
+
+// Substitution Lemma 9.3.8
+lemma subst :
+    forall d1: Gamma, x : T2 |- t1[x] : T1
+    forall d2: Gamma |- t2 : T2
+    exists Gamma |- t1[t2] : T1 .
+    _ : Gamma |- t1[t2] : T1 by induction on d1:
+
+	case rule
+	    ------------------------------- T-True
+	    _: Gamma, x : T2 |- true : Bool
+	is
+	    _: Gamma |- true : Bool by rule T-True
+	end case
+
+	case rule
+	    ------------------------------- T-False
+	    _: Gamma, x : T2 |- false : Bool
+	is
+	    _: Gamma |- false : Bool by rule T-False
+	end case
+
+	case rule
+	    d11: Gamma, x : T2 |- t11[x] : Bool
+	    d12: Gamma, x : T2 |- t12[x] : T
+	    d13: Gamma, x : T2 |- t13[x] : T
+	    ----------------------------------------------------------- T-If
+	    _:   Gamma, x : T2 |- if t11[x] then t12[x] else t13[x] : T
+	is
+	    d11': Gamma |- t11[t2] : Bool by induction hypothesis on d11,d2
+	    d12': Gamma |- t12[t2] : T by induction hypothesis on d12,d2
+	    d13': Gamma |- t13[t2] : T by induction hypothesis on d13,d2
+	    _ : Gamma |- if t11[t2] then t12[t2] else t13[t2] : T 
+		    by rule T-If on d11',d12',d13'
+	end case
+
+	case rule
+	    v: t1[x] : T1 in (Gamma, x:T2)
+	    ------------------------------- T-Var
+	    _: Gamma, x:T2 |- t1[x] : T1
+	is
+	    _: Gamma |- t1[t2] : T1 by case analysis on v:
+		case rule
+		    ------------------------ var
+		    _: x:T2 in (Gamma, x:T2)
+		is
+		    _: Gamma |- t2 : T2 by d2
+		end case
+		case rule
+		    --------------------------------- var
+		    _: x':T' in (Gamma', x':T', x:T2)
+		is
+		    v': x':T' in (Gamma', x':T') by rule var
+		    _: Gamma', x':T' |- x':T' by rule T-Var on v'
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    d11: Gamma, x : T2, x' : T2' |- t11[x][x'] : T1'
+	    ------------------------------------------------------------ T-Abs
+	    _  : Gamma, x : T2 |- (fn x':T2' => t11[x][x']) : T2' -> T1'
+	is
+	    d11r : Gamma, x' : T2', x : T2 |- t11[x][x'] : T1' 
+		    by exchange on d11
+	    d2' : Gamma, x' : T2' |- t2 : T2
+		    by weakening on d2
+	    d11': Gamma, x' : T2' |- t11[t2][x'] : T1' 
+		    by induction hypothesis on d11r,d2'
+	    _: Gamma |- (fn x':T2' => t11[t2][x']) : T2' -> T1' 
+		    by rule T-Abs on d11'	    
+	end case
+
+	case rule
+	    d11: Gamma, x : T2 |- t11[x] : T12 -> T
+	    d12: Gamma, x : T2 |- t12[x] : T12
+	    --------------------------------------- T-App
+	    _  : Gamma, x : T2 |- t11[x] t12[x] : T
+	is
+	    d11': Gamma |- t11[t2] : T12 -> T by induction hypothesis on d11,d2
+	    d12': Gamma |- t12[t2] : T12 by induction hypothesis on d12,d2
+	    _   : Gamma |- t11[t2] t12[t2] : T by rule T-App on d11',d12'
+	end case
+    end induction
+end theorem
+
+
+// Theorem 9.3.9
+theorem preservation :
+    forall d: Gamma |- t : T
+    forall e: t -> t'
+    exists Gamma |- t' : T .
+
+	_: Gamma |- t' : T by induction on d:
+		case rule
+			----------------------- T-True
+			_: Gamma |- true : Bool
+		is
+			_: Gamma |- t' : T by case analysis on e:
+			end case analysis
+		end case
+
+		case rule
+			----------------------- T-False
+			_: Gamma |- false : Bool
+		is
+			_: Gamma |- t' : T by case analysis on e:
+			end case analysis
+		end case
+
+		case rule
+			d1: Gamma |- t1 : Bool
+			d2: Gamma |- t2 : T
+			d3: Gamma |- t3 : T
+			------------------------------------- T-If
+			_: Gamma |- if t1 then t2 else t3 : T
+		is
+			_: Gamma |- t' : T by case analysis on e:
+				case rule
+					-------------------------------- E-IfTrue
+					_: if true then t2 else t3 -> t2
+				is
+					_: Gamma |- t2 : T by d2
+				end case
+
+				case rule
+					-------------------------------- E-IfFalse
+					_: if false then t2 else t3 -> t3
+				is
+					_: Gamma |- t3 : T by d3
+				end case
+
+				case rule
+					e1: t1 -> t1'
+					-------------------------------------------------- E-If
+					_: if t1 then t2 else t3 -> if t1' then t2 else t3
+				is
+					d1': Gamma |- t1' : Bool by induction hypothesis on d1, e1
+					_: Gamma |- t' : T by rule T-If on d1', d2, d3
+				end case
+			end case analysis
+		end case
+
+		case rule
+			i: t : T in Gamma
+			----------------- T-Var
+			_: Gamma |- t : T
+		is
+			_: Gamma |- t' : T by case analysis on i:
+				case rule
+					----------------------- var
+					_: x : T in (Gamma', x : T)
+				is
+					_: Gamma |- t' : T by case analysis on e:
+					end case analysis
+				end case
+			end case analysis
+		end case
+
+		case rule
+			_: Gamma, x : T1 |- t2[x] : T2
+			----------------------------------------- T-Abs
+			_: Gamma |- (fn x:T1 => t2[x]) : T1 -> T2
+		is
+			_: Gamma |- t' : T1 -> T2 by case analysis on e:
+			end case analysis
+		end case
+
+		case rule
+			d1: Gamma |- t1 : T2 -> T
+			d2: Gamma |- t2 : T2
+			------------------------- T-App
+			_: Gamma |- t1 t2 : T
+		is
+			_: Gamma |- t' : T by case analysis on e:
+				case rule
+					e1: t1 -> t1'
+					------------------ E-App1
+					_: t1 t2 -> t1' t2
+				is
+					d1': Gamma |- t1' : T2 -> T by induction hypothesis on d1, e1
+					_: Gamma |- t1' t2 : T by rule T-App on d1', d2
+				end case
+
+				case rule
+					v1: t1 value
+					e2: t2 -> t2'
+					------------------ E-App2
+					_: t1 t2 -> t1 t2'
+				is
+					d2': Gamma |- t2' : T2 by induction hypothesis on d2, e2
+					_: Gamma |- t1 t2' : T by rule T-App on d1, d2'
+				end case
+
+				case rule
+					_: t2 value
+					--------------------------------- E-AppAbs
+					_: (fn x:T' => t1'[x]) t2 -> t1'[t2]
+				is
+					d1': Gamma, x:T2 |- t1'[x] : T by case analysis on d1:
+						case rule
+							d1'': Gamma, x:T2 |- t1'[x] : T
+							----------------------------------------- T-Abs
+							_: Gamma |- (fn x:T2 => t1'[x]) : T2 -> T
+						is
+							_: Gamma, x:T2 |- t1'[x] : T by d1''
+						end case
+
+						case rule
+							i: t1 : T2 -> T1 in Gamma
+							-------------------------- T-Var
+							_: Gamma |- t1 : T2 -> T1
+						is
+							_: Gamma, x:T2 |- t1'[x] : T by case analysis on i:
+							end case analysis
+						end case
+					end case analysis
+					_: Gamma |- t1'[t2] : T by lemma subst on d1', d2
+				end case
+			end case analysis
+		end case
+	end induction
+end theorem
+

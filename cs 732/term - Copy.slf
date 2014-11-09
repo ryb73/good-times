@@ -1,0 +1,97 @@
+/*
+	CS 732
+	Homework #2 part 3
+	Ryan Biwer
+*/
+
+package edu.uwm.cs732;
+
+terminals contradiction s true false if then else
+
+syntax
+
+t ::= v
+	| if t then t else t
+
+v ::= true
+	| false
+
+judgment eq: t == t
+
+------ eq
+t == t
+
+----------------------------- e-iftrue
+if true then t2 else t3 == t2
+
+------------------------------ e-iffalse
+if false then t2 else t3 == t3
+
+t1 == t1'
+----------------------------------------------- e-if1
+if t1 then t2 else t3 == if t1' then t2 else t3
+
+t2 == t2'
+----------------------------------------------- e-if2
+if t1 then t2 else t3 == if t1 then t2' else t3
+
+t3 == t3'
+----------------------------------------------- e-if3
+if t1 then t2 else t3 == if t1 then t2 else t3'
+
+t1 == t2
+t2 == t3
+-------- eq-trans
+t1 == t3
+
+theorem if-eq-implies-t1-eq:
+	forall p: if t1 then t2 else t3 == if t1' then t2 else t3
+	exists t1 == t1' .
+
+	_: t1 == t1' by induction on p:
+		case rule
+			----------- eq
+			_: t4 == t4
+		is
+			_: t1 == t1 by rule eq
+		end case
+		case rule
+			p2: t1 == t1'
+			-------------------------------------------------- e-if1
+			_: if t1 then t2 else t3 == if t1' then t2 else t3
+		is
+			_: t1 == t1' by p2
+		end case
+		case rule
+			p2: t2 == t2
+			-------------------------------------------------- e-if2
+			_: if t1 then t2 else t3 == if t1 then t2 else t3
+		is
+			_: t1 == t1 by rule eq
+		end case
+		case rule
+			p2: t3 == t3
+			-------------------------------------------------- e-if3
+			_: if t1 then t2 else t3 == if t1 then t2 else t3
+		is
+			_: t1 == t1 by rule eq
+		end case
+		case rule
+			p2: 
+			------------ eq-trans
+			_: 
+	end induction
+end theorem
+
+theorem all-eq-implies-if-eq:
+	forall p1: t0 == t0'
+	forall p2: t1 == t1'
+	forall p3: t2 == t2'
+	exists if t0 then t1 else t2 == if t0' then t1' else t2' .
+
+	p4: if t0 then t1 else t2 == if t0' then t1 else t2 by rule e-if1 on p1
+	p5: if t0' then t1 else t2 == if t0' then t1' else t2 by rule e-if2 on p2
+	p6: if t0' then t1' else t2 == if t0' then t1' else t2' by rule e-if3 on p3
+	p7: if t0 then t1 else t2 == if t0' then t1' else t2 by rule eq-trans on p4, p5
+	_: if t0 then t1 else t2 == if t0' then t1' else t2' by rule eq-trans on p7, p6
+end theorem

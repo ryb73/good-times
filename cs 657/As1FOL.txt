@@ -1,0 +1,52 @@
+Ax = for all x
+Ex = there exists some x
+
+1. a. ¬Ex Elt(x, x)
+      AxAy(Sub(x, y) <-> Az(Elt(z, x) -> Elt(z, y)))
+      AxAyAz(Elt(z, u(x, y)) <-> (Elt(z, x) v Elt(z, y)))
+
+   b. 1. I |= Sub(a, u(a, b)) <-> Az(Elt(z, a) -> Elt(z, u(a, b)))		for any a or b
+      2. assume I |= ¬Sub(a, u(a, b))
+	  3. I |= ¬Az(Elt(z, a) -> Elt(z, u(a, b)))
+	  4. I |= Ez(Elt(z, a) ^ ¬Elt(z, u(a, b)))
+	  5. I |= Az(Elt(z, u(a, b)) <-> (Elt(z, a) v Elt(z, a) v Elt(z, b)))
+	  6. I |= Az(¬Elt(z, u(a, b)) -> ¬(Elt(z, a) v Elt(z, b)))
+	  7. I |= Az(Elt(z, u(a, b)) v ¬(Elt(z, a) v Elt(z, b)))
+	  8. I |= Az ¬(¬Elt(z, u(a, b)) ^ (Elt(z, a) v Elt(z, b)))
+	  9. I |= ¬Ez(¬Elt(z, u(a, b)) ^ (Elt(z, a) v Elt(z, b)))
+	   9 conflicts with 4. Therefore,
+	  10. I |= Sub(a, u(a, b))
+	  11. I |= AxAy Sub(x, u(x, y))
+	  
+   c. Equality between two sets x and y can be represented by the following:
+   
+      Az(Elt(z, y) <-> Elt(z, y))
+	  
+	  The given predicate, represented in FOL by
+	  
+	  AxAyAz(Elt(z, u(x, y)) <-> Elt(z, u(y, x)))
+	  
+	  follows from T as follows:
+	  
+	  Elt(c, u(a, b)) <-> (Elt(c, a) v Elt(c, b))		for any a, b, or c
+	  Elt(c, u(b, a)) <-> (Elt(c, b) v Elt(c, b))		"
+	  -> assume Elt(c, u(a, b))
+	  |  Elt(c, a) v Elt(c, b)
+	  |  Elt(c, b) v Elt(c, a)
+	  |  Elt(c, u(b, a))
+	  -----------
+	  Elt(c, u(a, b)) -> Elt(c, u(b, a))
+	  -> assume Elt(c, u(b, a))
+	  |  Elt(c, b) v Elt(c, a)
+	  |  Elt(c, a) v Elt(c, b)
+	  |  Elt(c, u(a, b))
+	  -----------
+	  Elt(c, u(b, a)) -> Elt(c, u(a, b))
+	  Elt(c, u(a, b)) <-> Elt(c, u(b, a))
+	  AxAyAz(Elt(z, u(x, y)) <-> Elt(z, u(x, y)))
+
+2. a. Ax((shirtColor(x, green)) -> (youngerThan(huey, x)))
+   b. Ax(age(x) = 5 <-> shirtDesign(x) = camel)
+   c. shirtColor(dewey) = yellow
+   d. shirtDesign(louie) = giraffe
+   e. Ax(shirtDesign(x, panda) <-> ¬shirtColor(x, white))

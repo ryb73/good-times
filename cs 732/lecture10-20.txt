@@ -1,0 +1,70 @@
+Addr = PhysicalAddr + VirtualAddr
+Sum type
+
+union {
+	int i
+	float f
+} myU;
+
+union myU x;
+
+t ::= ...
+	| inl t
+	| inr t
+	| case t of inl x => t
+				| inr y => t
+
+inl : PhysicalAddr -> Addr
+inr : VirtualAddr -> Addr
+
+
+t0 -> t'
+---------------------------------------------------------------------------- E-Case
+case t0 of inl x => t1 | inr y => t2 -> case t' of inl x => t1 | inr y => t2
+
+------------------------------------------------ E-Case-Inl
+case inl v pf inl x => t1 | inr y => t2 -> t1[v]
+
+------------------------------------------------ E-Case-Inr
+case inr v pf inl x => t1 | inr y => t2 -> t2[v]
+
+T ::= ...
+	| T + T
+
+G |- t : T1
+-------------------- T-Inl
+G |- inl t : T1 + T2
+
+G |- t : T2
+-------------------- T-Inr
+G |- inr t : T1 + T2
+
+G |- t0 : T1 + T2
+G, x : T1 |- t1 : T
+G, y : T2 |- t2 : T
+------------------------------------------------ T-Case
+G |- case t0 of inl x => t1 | inr y => t2 : T
+
+t ::= ...
+	| inl t as T1 + T2	// change inl t
+	| inr t as T1 + T2	// change inr t
+
+	| <l = t> as T
+	| case <l = v> as T of <li = xi> => ti V(i e 1..n)
+
+T ::= ...
+	| <li : Ti> (i e 1..n)
+
+T ::= ...
+	| fix t
+
+G |- t : T1 -> T1
+-----------------
+G |- fix t : T1
+
+t -> t'
+---------------
+fix t -> tix t'
+
+------------------------
+fix \x.t -> fix (\x.t t)

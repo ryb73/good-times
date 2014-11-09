@@ -1,0 +1,89 @@
+Problem reading bug01.xml: java.io.IOException: No such shape class html
+Problem reading bug02.xml: java.io.IOException: No such shape class Oval
+Problem reading bug03.xml: java.io.IOException: Duplicate Attribute: fill
+Problem reading bug04.xml: java.io.IOException: Not all required attributes of edu.uwm.cs351.Circle@9ed927 specified.
+Problem reading bug05.xml: java.io.IOException: Not all required attributes of edu.uwm.cs351.Circle@c2a132 specified.
+Problem reading bug06.xml: java.io.IOException: Not all required attributes of edu.uwm.cs351.Rectangle@19616c7 specified.
+Problem reading bug07.xml: java.io.IOException: Attribute width = '45' not accepted.
+Problem reading bug08.xml: java.io.IOException: Attribute selected = 'true' not accepted.
+Problem reading bug09.xml: java.io.IOException: Attribute trans = '(10,10)' not accepted.
+Problem reading bug10.xml: java.io.IOException: Not all required attributes of edu.uwm.cs351.Rectangle@b166b5 specified.
+Problem reading bug11.xml: java.io.IOException: Not all required attributes of edu.uwm.cs351.Rectangle@cdfc9c specified.
+Problem reading bug12.xml: java.io.IOException: Sub-element <Circle> not accepted.
+Problem reading bug13.xml: java.io.IOException: Must have Drawing as root element
+Problem reading bug14.xml: java.io.IOException: Missing single Drawing element.
+Problem reading bug15.xml: java.io.IOException: Multiple drawings not allowed
+Problem reading bug16.xml: java.io.IOException: Attribute width = '0' not accepted.
+Problem reading bug17.xml: java.io.IOException: Attribute radius = '-3' not accepted.
+Problem reading bug18.xml: java.io.IOException: Element Drawing ended with </Group>
+Problem reading bug19.xml: java.io.IOException: Text not accepted by edu.uwm.cs351.Circle@1837697
+Problem reading bug20.xml: java.io.IOException: Text not accepted by edu.uwm.cs351.Drawing@1decdec
+Problem reading bug21.xml: java.io.IOException: Attribute width = '0' not accepted.
+Problem reading bug22.xml: java.io.IOException: Duplicate Attribute: height
+Problem reading bug23.xml: java.io.IOException: Illegal < inside of tag
+Java Accessibility Bridge for GNOME loaded.
+
+Content of nested.xml is
+<Drawing>
+<Group>
+</Group>
+<Group>
+<Circle fill='-16777216'  center='(150.0,150.0)' radius='100.0'>
+</Circle>
+<Group>
+<Circle fill='-8355712'  center='(150.0,150.0)' radius='90.0'>
+</Circle>
+<Group>
+<Circle fill='-8388480'  center='(150.0,150.0)' radius='80.0'>
+</Circle>
+<Group>
+<Circle fill='-16776961'  center='(150.0,150.0)' radius='70.0'>
+</Circle>
+<Group>
+<Circle fill='-16711936'  center='(150.0,150.0)' radius='60.0'>
+</Circle>
+<Group>
+<Circle fill='-256'  center='(150.0,150.0)' radius='50.0'>
+</Circle>
+<Group>
+<Circle fill='-14336'  center='(150.0,150.0)' radius='40.0'>
+</Circle>
+<Group>
+<Circle fill='-65536'  center='(150.0,150.0)' radius='30.0'>
+</Circle>
+<Drawing>
+<Circle fill='-20561'  center='(150.0,150.0)' radius='20.0'>
+</Circle>
+<Group>
+<Group>
+</Group>
+<Circle fill='-1'  center='(150.0,150.0)' radius='10.0'>
+</Circle>
+<Circle fill='-16777216'  center='(150.0,150.0)' radius='2.5'>
+</Circle>
+</Group>
+</Drawing>
+</Group>
+</Group>
+</Group>
+</Group>
+<Drawing>
+</Drawing>
+</Group>
+</Group>
+</Group>
+</Group>
+</Drawing>
+Content of robot.xml is
+<Drawing>
+<Circle outline='-16777216' fill='-256'  center='(150.0,150.0)' radius='100.0'>
+</Circle>
+<Group>
+<Circle fill='-16777216'  center='(120.0,120.0)' radius='20.0'>
+</Circle>
+<Circle fill='-16777216'  center='(180.0,120.0)' radius='20.0'>
+</Circle>
+</Group>
+<Rectangle outline='-16776961'  center='(150.0,190.0)' width='150.0' height='10.0'>
+</Rectangle>
+</Drawing>

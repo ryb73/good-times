@@ -1,0 +1,4 @@
+<!-- bad radius -->
+<Drawing>
+    <Circle radius='-3' center='(100,100)' fill='green'/>
+</Drawing>

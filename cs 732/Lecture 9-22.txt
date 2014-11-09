@@ -1,0 +1,99 @@
+judgment normal: t -/->
+
+--------- normal-true
+true -/->
+
+---------- normal-false
+false -/->
+
+judgment evals: t ->* t
+
+------- e-refl
+t ->* t
+
+kill e-eval and e-trans
+
+t1 -> t2
+t2 ->* t3
+--------- e-eval
+t1 ->* t3
+
+lemma evals-one-step:
+	forall e: t -> t'
+	exists t ->* t' .
+
+	es: t' ->* t' by rule e-refl
+	_: t ->* t' by rule e-eval on e, es
+end lemma
+
+lemma normal-steps-zero:
+	forall n: t -/->
+	forall es: t ->* t'
+	exists t == t' .
+
+	_: t == t' by 
+
+lemma normal-does-not-eval:
+	forall n: t -/->
+	forall e: t -> t'
+	exists contradiction .
+	_: contradiction by unproved
+
+theorem eval-deterministic:
+	forall t -> t'
+	forall t -> t''
+	exists t' == t''
+
+	_: t' == t'' by unproved
+end theorem
+
+theorem uniqueness-normal-form:
+	forall es1: t ->* t'
+	forall es2: t ->* t''
+	forall n': t' -/->
+	forall n'': t'' -/->
+	exists t' == t'' /
+
+	_: t' == t'' by induction on es1:
+		case rule
+			---------- e-refl // t' => t
+			_: t ->* t
+		is
+			_: t == t'' by by lemma normal-steps-zero on n', es2
+		end case
+		case rule
+			e1: t -> t1
+			er1: t1 ->* t'
+			--------------- e-eval
+			_: t ->* t'
+		is
+			er2: t1 ->* t'' by case analysis on es2:
+				case rule
+					---------- e-refl
+					_: t ->* t
+				is
+					c: contradiction by rule normal-does-not-eval on n'', e1
+					_: t2 ->* t by case analysis on c: end case analysis
+				end case
+				case rule
+					e2: t -> t2
+					er2: t2 ->* t''
+					--------------- e-eval
+					_: t ->* t''
+				is
+					e: t1 == t2 by theorem eval-deterministic on e1, e1
+					_: t1 ->* t'' by case analysis on e:
+						case rule
+							----------- eq
+							_: t1 == t1
+						is
+							_: t1 ->* t'' by er2
+						end case
+					end case analysis
+				end case
+			end case analysis
+
+			_: t' = t'' by induction hypothesis on er1, er2, n', n''
+		end case
+	end induction
+end theorem

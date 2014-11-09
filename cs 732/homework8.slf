@@ -1,0 +1,1184 @@
+/* CompSci 732
+ * Fall 2011
+ * Homework #8
+ */
+
+package edu.uwm.cs.cs732;
+
+terminals contradiction s unit value
+          Unit fn Ref ref loc emp Emp in
+
+
+syntax
+
+n ::= 0 | s n
+
+t ::= unit
+  | fn x:T => t[x]
+  | x
+  | t t
+  | ref t
+  | *t
+  | t = t
+  | loc n
+
+T ::= Unit
+  | T -> T
+  | Ref T
+
+m ::= emp
+  | t , m
+
+M ::= Emp
+  | T , M
+
+Gamma ::= *
+      | Gamma, x : T
+
+
+judgment absurd: contradiction
+
+
+judgment isavalue: t value
+
+
+---------- val-unit
+unit value
+
+-------------------- val-fn
+fn x:T => t[x] value
+
+----------- val-loc
+loc n value
+
+
+
+/** Allocation.
+ * m <- t = loc n ! m' means
+ * if we allocate a space for t in m, we get location n in a new memory m'
+ */
+judgment alloc: m <- t = loc n ! m
+
+---------------------------- alloc-emp
+emp <- t = loc 0 ! (t,emp)
+
+m <- t = loc n ! m'
+--------------------------------- alloc-nonemp
+(t',m) <- t = loc s n ! (t',m')
+
+
+/** Lookup.
+ * m { n } = t
+ * means we lookup n in m and get t
+ */
+judgment lookup: m { n } = t
+
+----------- lookup-zero
+(t,m){0} = t
+
+m{n} = t'
+-------------- lookup-nonzero
+(t,m){s n} = t'
+
+
+/** Update
+ * {n -> t} m = m'
+ * means we update location n in memory to be t and get new memory m'
+ */
+judgment update: {n -> t}m = m'
+
+------------------------ update-zero
+{0 -> t'}(t,m) = (t',m)
+
+{n -> t'}m = m'
+------------------------- update-nonzero
+{s n -> t'}(t,m) = (t,m')
+
+
+/** Type Lookup.
+ * M { n } = T
+ * means we lookup n in M and get T
+ */
+judgment type-lookup: M { n } = T
+
+------------ type-lookup-zero
+(T,M){0} = T
+
+M{n} = T'
+--------------- type-lookup-nonzero
+(T,M){s n} = T'
+
+
+/** Type Allocate
+ * {n -> T}M = M'
+ * means we allocate location n in memory to be T and get new memory-type M'
+ * (This uses notation analogous to update because we know what
+ * the "n" to use will be.)
+ */
+judgment type-allocate: {n -> T}M = M'
+
+------------------------ type-allocate-zero
+{0 -> T}Emp = (T,Emp)
+
+{n -> T'}M = M'
+------------------------- type-allocate-nonzero
+{s n -> T'}(T,M) = (T,M')
+
+
+judgment eval: t|m -> t|m
+
+t1|m -> t1'|m'
+---------------------- E-App1
+t1 t2 |m -> t1' t2 |m'
+
+t1 value
+t2|m -> t2'|m'
+---------------------- E-App2
+t1 t2 |m -> t1 t2' |m'
+
+t2 value
+----------------------------------- E-AppAbs
+(fn x:T => t1[x]) t2 |m -> t1[t2]|m
+
+t|m -> t'|m'
+------------------------ E-Ref
+ref t | m -> ref t' | m'
+
+t value
+m <- t = loc n ! m'
+----------------------- E-RefV
+ref t | m -> loc n | m'
+
+t|m -> t'|m'
+------------------ E-Deref
+*t | m -> *t' | m'
+
+m{n} = t
+--------------- E-DerefLoc
+*loc n|m -> t|m
+
+t1|m -> t1'|m'
+-------------------------- E-Assign1
+t1 = t2 |m -> t1' = t2 |m'
+
+t1 value
+t2|m -> t2'|m'
+-------------------------- E-Assign2
+t1 = t2 |m -> t1 = t2' |m'
+
+t value
+{n -> t}m = m'
+----------------------- E-Assign
+loc n = t |m -> unit|m'
+
+
+
+judgment notstuck: t|m ->?
+
+t value
+------- ns-value
+t|m ->?
+
+t|m -> t'|m'
+------------ ns-eval
+t|m ->?
+
+
+judgment isvar: t : T in Gamma
+assumes Gamma
+
+----------------------- var
+x : T in (Gamma, x : T)
+
+
+judgment type: Gamma; M |- t : T
+assumes Gamma
+
+----------------------- T-Unit
+Gamma; M |- unit : Unit
+
+t : T in Gamma
+----------------- T-Var
+Gamma; M |- t : T
+
+Gamma, x : T1; M |- t[x] : T2
+---------------------------------------- T-Abs
+Gamma; M |- (fn x:T1 => t[x]) : T1 -> T2
+
+Gamma; M |- t1 : T2 -> T1
+Gamma; M |- t2 : T2
+-------------------------- T-App
+Gamma; M |- t1 t2 : T1
+
+Gamma; M |- t : T
+------------------------- T-Ref
+Gamma; M |- ref t : Ref T
+
+Gamma; M |- t : Ref T
+--------------------- T-Deref
+Gamma; M |- *t : T
+
+Gamma; M |- t1 : Ref T
+Gamma; M |- t2 : T
+-------------------------- T-Assign
+Gamma; M |- t1 = t2 : Unit
+
+M{n} = T
+------------------------- T-Loc
+Gamma; M |- loc n : Ref T
+
+
+// Definition 13.5.1
+// (We omit Gamma, and use M instead of Sigma)
+// Also, M appears twice because it has two different roles to play
+judgment memtyping: M |- m : M
+
+
+--------------- emp-ok
+M0 |- emp : Emp
+
+
+*; M0 |- t : T
+M0 |- m : M
+------------------- nonemp-ok
+M0 |- (t,m) : (T,M)
+
+
+
+judgment includes: M >= M
+
+-------- includes-emp
+M >= Emp
+
+M >= M'
+--------------- includes-nonemp
+(T,M) >= (T,M')
+
+
+judgment extended: M{n} = T /\ M |- m:M /\ M >= M
+
+M'{n} = T
+M' |- m' : M'
+M' >= M
+----------------------------------- extended-def
+M'{n} = T /\ M' |- m':M' /\ M' >= M
+
+
+
+judgment preserved: M |- t : T; m /\ M >= M
+
+
+*; M' |- t : T
+   M' |- m' : M'
+M' >= M
+--------------------------- preserved-def
+M' |- t : T; m' /\ M' >= M
+
+
+
+judgment canonical: Gamma; M |- t value : T
+assumes Gamma
+
+----------------------------- canonical-unit
+Gamma; M |- unit value : Unit
+
+Gamma, x:T1; M |- t[x] : T2
+---------------------------------------------- canonical-fn
+Gamma; M |- (fn x:T1 => t[x]) value : T1 -> T2
+
+M{n} = T
+------------------------------- canonical-ref
+Gamma; M |- loc n value : Ref T
+
+
+
+lemma canonical-forms :
+    forall d: Gamma; M |- t : T
+    forall v: t value
+    exists Gamma; M |- t value : T .
+    _ : Gamma; M |- t value : T by induction on v:
+	case rule
+	    ------------- val-unit
+	    _: unit value
+	is
+	    _ : Gamma; M |- t value : T by case analysis on d:
+		case rule
+		    ----------------------- T-Unit
+		    _: Gamma; M |- unit : Unit
+		is
+		    _: Gamma; M |- unit value : Unit by rule canonical-unit
+		end case
+		case rule
+		    v: unit : T in Gamma
+		    -------------------- T-Var
+		    _: Gamma; M |- unit : T
+		is
+		    _: Gamma; M |- unit value : T by case analysis on v:
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    --------------------------- val-fn
+	    _: (fn x:T1 => t1[x]) value
+	is
+	    _ : Gamma; M |- t value : T by case analysis on d:
+		case rule
+		    d1: Gamma, x : T1; M |- t1[x] : T2
+		    --------------------------------------- T-Abs
+		    _: Gamma; M |- fn x:T1 => t2[x] : T1 -> T2
+		is
+		    _: Gamma; M |- fn x:T1 => t2[x] value : T1 -> T2
+			    by rule canonical-fn on d1
+		end case
+		case rule
+		    v: fn x:T1 => t2[x] : T in Gamma
+		    -------------------------------- T-Var
+		    _: Gamma; M |- fn x:T1 => t2[x] : T
+		is
+		    _: Gamma; M |- t value : T by case analysis on v:
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    -------------- val-loc
+	    _: loc n value
+	is
+	    _ : Gamma; M |- t value : T by case analysis on d:
+		case rule
+		    L: M{n} = T'
+		    --------------------------------------- T-Loc
+		    _: Gamma; M |- loc n : Ref T'
+		is
+		    _: Gamma; M |- loc n value : Ref T'
+			    by rule canonical-ref on L
+		end case
+		case rule
+		    v: loc n : T in Gamma
+		    -------------------------------- T-Var
+		    _: Gamma; M |- loc n : T
+		is
+		    _: Gamma; M |- t value : T by case analysis on v:
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+    end induction
+end lemma
+
+
+// sometimes we need to unpack canonical forms too:
+lemma canonical-implies-typed :
+    forall c: Gamma; M |- t value : T
+    exists Gamma; M |- t : T .
+    _: Gamma; M |- t : T by induction on c:
+	case rule
+	    ----------------------------- canonical-unit
+	    _: Gamma; M |- unit value : Unit
+	is
+	    _: Gamma; M |- unit : Unit by rule T-Unit
+	end case
+
+	case rule
+	    d1: Gamma, x:T1; M |- t1[x] : T2
+	    ------------------------------------------------ canonical-fn
+	    _ : Gamma; M |- (fn x:T1 => t1[x]) value : T1 -> T2
+	is
+	    _ : Gamma; M |- (fn x:T1 => t1[x]) : T1 -> T2 by rule T-Abs on d1
+	end case
+
+	case rule
+	    L: M{n} = T'
+	    ----------------------------------- canonical-ref
+	    _: Gamma; M |- loc n value : Ref T'
+	is
+	    _: Gamma; M |- loc n : Ref T' by rule T-Loc on L
+	end case
+    end induction
+end lemma
+
+
+lemma canonical-implies-value :
+    forall c: Gamma; M |- t value : T
+    exists t value .
+    _: t value by induction on c:
+	case rule
+	    ----------------------------- canonical-unit
+	    _: Gamma; M |- unit value : Unit
+	is
+	    _: unit value by rule val-unit
+	end case
+
+	case rule
+	    d1: Gamma, x:T1; M |- t1[x] : T2
+	    ------------------------------------------------ canonical-fn
+	    _ : Gamma; M |- (fn x:T1 => t1[x]) value : T1 -> T2
+	is
+	    _: (fn x:T1 => t1[x]) value by rule val-fn
+	end case
+
+	case rule
+	    _: M{n} = T'
+	    ----------------------------------- canonical-ref
+	    _: Gamma; M |- loc n value : Ref T'
+	is
+	    _: loc n value by rule val-loc
+	end case
+    end induction
+end lemma
+
+
+/// PROGRESS
+
+
+// First effectivesness lemma:
+lemma can-allocate :
+    forall m
+    forall t
+    exists m <- t = loc n ! m' .
+
+	_: m <- t = loc n ! m' by induction on m:
+		case emp is
+			_: emp <- t = loc 0 ! (t, emp) by rule alloc-emp
+		end case
+		case t1, m1 is
+			a: m1 <- t = loc n1 ! m1' by induction hypothesis on m1, t
+			_: (t1, m1) <- t = loc s n1 ! (t1, m1') by rule alloc-nonemp on a
+		end case
+	end induction
+end lemma
+
+
+// Second effectiveness lemma
+lemma can-lookup-in-ok-mem :
+    forall ok: M0 |- m : M
+    forall L: M{n} = T
+    exists m{n} = t .
+
+	_: m{n} = t by induction on ok:
+		case rule
+			------------------ emp-ok
+			_: M0 |- emp : Emp
+		is
+			_: m{n} = t by case analysis on L:
+			end case analysis
+		end case
+
+		case rule
+			_: *; M0 |- t' : T'
+			ok': M0 |- m' : M'
+			---------------------- nonemp-ok
+			_: M0 |- (t',m') : (T',M')
+		is
+			_: (t', m'){n} = t by case analysis on L:
+				case rule
+					--------------- type-lookup-zero
+					_: (T,M'){0} = T
+				is
+					_: (t', m'){0} = t' by rule lookup-zero
+				end case
+
+				case rule
+					L': M'{n'} = T
+					------------------ type-lookup-nonzero
+					_: (T',M'){s n'} = T
+				is
+					l: m'{n'} = t by induction hypothesis on ok', L'
+					_: (t', m'){s n'} = t by rule lookup-nonzero on l
+				end case
+			end case analysis
+		end case
+	end induction
+end lemma
+
+// Third and final effectiveness lemma for Homework #8
+lemma can-update-in-ok-mem :
+    forall o: M0 |- m : M
+    forall L: M{n} = T
+    forall t
+    exists {n -> t}m = m'.
+
+	_: {n -> t}m = m' by induction on o:
+		case rule
+			------------------ emp-ok
+			_: M0 |- emp : Emp
+		is
+			_: {n -> t}m = m' by case analysis on L:
+			end case analysis
+		end case
+
+		case rule
+			_: *; M0 |- t1 : T1
+			o1: M0 |- m1 : M1
+			----------------------- nonemp-ok
+			_: M0 |- (t1,m1) : (T1,M1)
+		is
+			_: {n -> t}(t1, m1) = m' by case analysis on L:
+				case rule
+					--------------- type-lookup-zero
+					_: (T,M'){0} = T
+				is
+					_: {0 -> t}(t1, m1) = (t, m1) by rule update-zero
+				end case
+
+				case rule
+					L1: M'{n'} = T
+					-------------------- type-lookup-nonzero
+					_: (T',M'){s n'} = T
+				is
+					u1: {n' -> t}m1 = m1' by induction hypothesis on o1, L1, t
+					_: {s n' -> t}(t1, m1) = (t1, m1') by rule update-nonzero on u1
+				end case
+			end case analysis
+		end case
+	end induction
+end lemma
+
+
+
+// Thm 13.5.7
+theorem progress :
+    forall d : *; M |- t : T
+    forall mo:    M |- m : M
+    exists t|m ->? .
+    _ : t|m ->? by induction on d:
+	case rule
+	    ---------------------- T-Unit
+	    _: *; M |- unit : Unit
+	is
+	    v: unit value by rule val-unit
+	    _: unit|m ->? by rule ns-value on v
+	end case
+
+	case rule
+	    v: t : T in *
+	    ---------------- T-Var
+	    _: *; M |- t : T
+	is
+	    _: t|m ->? by case analysis on v:
+	    end case analysis
+	end case
+
+	case rule
+	    d1: *, x:T1; M |- t1[x] : T2
+	    --------------------------------------- T-Abs
+	    _ : *; M |- fn x:T1 => t1[x] : T1 -> T2
+	is
+	    v : fn x:T1 => t1[x] value by rule val-fn
+	    _ : t|m ->? by rule ns-value on v
+	end case
+	
+	// Case for T-App, similar to previous proofs but 
+	// we have a memory tagging along.
+	case rule
+		d1: *; M |- t1 : T2 -> T
+		d2: *; M |- t2 : T2
+		-------------------------- T-App
+		_: *; M |- t1 t2 : T
+	is
+		ns1: t1|m ->? by induction hypothesis on d1, mo
+		ns2: t2|m ->? by induction hypothesis on d2, mo
+		_: t1 t2 | m ->? by case analysis on ns1:
+			case rule
+				v1: t1 value
+				----------- ns-value
+				_: t1|m ->?
+			is
+				_: t1 t2 | m ->? by case analysis on ns2:
+					case rule
+						v2: t2 value
+						----------- ns-value
+						_: t2|m ->?
+					is
+						c1: *; M |- t1 value : T2 -> T by lemma canonical-forms on d1, v1
+						_: t1 t2 | m ->? by case analysis on c1:
+							case rule
+								_: *, x:T2; M |- t1'[x] : T
+								---------------------------------------------- canonical-fn
+								_: *; M |- (fn x:T2 => t1'[x]) value : T2 -> T
+							is
+								e: (fn x:T2 => t1'[x]) t2 | m -> t1'[t2] | m by rule E-AppAbs on v2
+								_: (fn x:T2 => t1'[x]) t2 | m ->? by rule ns-eval on e
+							end case
+						end case analysis
+					end case
+
+					case rule
+						e2: t2|m -> t2'|m'
+						----------------- ns-eval
+						_: t2|m ->?
+					is
+						e: t1 t2 | m -> t1 t2' | m' by rule E-App2 on v1, e2
+						_: t1 t2 | m ->? by rule ns-eval on e
+					end case
+				end case analysis
+			end case
+
+			case rule
+				e1: t1|m -> t1'|m'
+				----------------- ns-eval
+				_: t1|m ->?
+			is
+				e: t1 t2 | m -> t1' t2 | m' by rule E-App1 on e1
+				_: t1 t2 | m ->? by rule ns-eval on e
+			end case
+		end case analysis
+	end case
+
+	// Reference related rules
+	case rule
+		d': * ; M |- t' : T'
+		-------------------------- T-Ref
+		_: *; M |- ref t' : Ref T'
+	is
+		ns': t' | m ->? by induction hypothesis on d', mo
+		_: ref t' | m ->? by case analysis on ns':
+			case rule
+				v': t' value
+				------------ ns-value
+				_: t'|m ->?
+			is
+				ca: m <- t' = loc n ! m' by lemma can-allocate on m, t'
+				e: ref t' | m -> loc n | m' by rule E-RefV on v', ca
+				_: ref t' | m ->? by rule ns-eval on e
+			end case
+
+			case rule
+				e': t'|m -> t''|m'
+				----------------- ns-eval
+				_: t'|m ->?
+			is
+				e: ref t' | m -> ref t'' | m' by rule E-Ref on e'
+				_: ref t' | m ->? by rule ns-eval on e
+			end case
+		end case analysis
+	end case
+
+	case rule
+		d': *; M |- t' : Ref T
+		---------------------- T-Deref
+		_: *; M |- *t' : T
+	is
+		ns': t' | m ->? by induction hypothesis on d', mo
+		_: *t' | m ->? by case analysis on ns':
+			case rule
+				v': t' value
+				------------ ns-value
+				_: t'|m ->?
+			is
+				c': *; M |- t' value : Ref T by lemma canonical-forms on d', v'
+				_: *t' | m ->? by case analysis on c':
+					case rule
+						L: M{n} = T
+						------------------------------- canonical-ref
+						_: *; M |- loc n value : Ref T
+					is
+						l: m{n} = t'' by lemma can-lookup-in-ok-mem on mo, L
+						e: *loc n | m -> t'' | m by rule E-DerefLoc on l
+						_: *loc n | m ->? by rule ns-eval on e
+					end case
+				end case analysis
+			end case
+
+			case rule
+				e': t'|m -> t''|m'
+				------------------ ns-eval
+				_: t'|m ->?
+			is
+				e: *t' | m -> *t'' | m' by rule E-Deref on e'
+				_: *t' | m ->? by rule ns-eval on e
+			end case
+		end case analysis
+	end case
+
+	case rule
+		d1: *; M |- t1 : Ref T'
+		d2: *; M |- t2 : T'
+		-------------------------- T-Assign
+		_: *; M |- t1 = t2 : Unit
+	is
+		ns1: t1|m ->? by induction hypothesis on d1, mo
+		ns2: t2|m ->? by induction hypothesis on d2, mo
+		_: t1 = t2 | m ->? by case analysis on ns1:
+			case rule
+				v1: t1 value
+				------------ ns-value
+				_: t1|m ->?
+			is
+				_: t1 = t2 | m ->? by case analysis on ns2:
+					case rule
+						v2: t2 value
+						------------ ns-value
+						_: t2|m ->?
+					is
+						c1: *; M |- t1 value : Ref T' by lemma canonical-forms on d1, v1
+						_: t1 = t2 | m ->? by case analysis on c1:
+							case rule
+								L: M{n} = T'
+								------------------------------- canonical-ref
+								_: *; M |- loc n value : Ref T'
+							is
+								cu: {n -> t2}m = m' by lemma can-update-in-ok-mem on mo, L, t2
+								e: loc n = t2 | m -> unit|m' by rule E-Assign on v2, cu
+								_: loc n = t2 | m ->? by rule ns-eval on e
+							end case
+						end case analysis
+					end case
+
+					case rule
+						e2: t2|m -> t2'|m'
+						------------------ ns-eval
+						_: t2|m ->?
+					is
+						e: t1 = t2 | m -> t1 = t2' | m' by rule E-Assign2 on v1, e2
+						_: t1 = t2 | m ->? by rule ns-eval on e
+					end case
+				end case analysis
+			end case
+
+			case rule
+				e1: t1|m -> t1'|m'
+				------------------ ns-eval
+				_: t1|m ->?
+			is
+				e: t1 = t2 | m -> t1' = t2 | m' by rule E-Assign1 on e1
+				_: t1 = t2 | m ->? by rule ns-eval on e
+			end case
+		end case analysis
+	end case
+
+	case rule
+		L: M{n} = T'
+		------------------------- T-Loc
+		_: *; M |- loc n : Ref T'
+	is
+		v: loc n value by rule val-loc
+		_: loc n | m ->? by rule ns-value on v
+	end case
+
+    end induction
+end theorem
+
+
+/// EXTRA (Don't do this unless you finish progress)
+/* Remove this comment starter if you wish to do the extra work.
+
+
+/// Preservation
+
+
+// Lemma 13.5.4
+lemma subst :
+    forall d1: Gamma, x : T2; M |- t1[x] : T1
+    forall d2: Gamma; M |- t2 : T2
+    exists Gamma; M |- t1[t2] : T1 .
+    _ : Gamma; M |- t1[t2] : T1 by induction on d1:
+
+	case rule
+	    ---------------------------------- T-Unit
+	    _: Gamma, x : T2; M |- unit : Unit
+	is
+	    _: Gamma; M |- unit : Unit by rule T-Unit
+	end case
+
+	case rule
+	    v: t1[x] : T1 in (Gamma, x:T2)
+	    ------------------------------- T-Var
+	    _: Gamma, x:T2; M |- t1[x] : T1
+	is
+	    _: Gamma; M |- t1[t2] : T1 by case analysis on v:
+		case rule
+		    ------------------------ var
+		    _: x:T2 in (Gamma, x:T2)
+		is
+		    _: Gamma; M |- t2 : T2 by d2
+		end case
+		case rule
+		    --------------------------------- var
+		    _: x':T' in (Gamma', x':T', x:T2)
+		is
+		    v': x':T' in (Gamma', x':T') by rule var
+		    _: Gamma', x':T'; M |- x':T' by rule T-Var on v'
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    d11: Gamma, x : T2, x' : T2'; M |- t11[x][x'] : T1'
+	    ------------------------------------------------------------ T-Abs
+	    _  : Gamma, x : T2; M |- (fn x':T2' => t11[x][x']) : T2' -> T1'
+	is
+	    d11r : Gamma, x' : T2', x : T2; M |- t11[x][x'] : T1' 
+		    by exchange on d11
+	    d2' : Gamma, x' : T2'; M |- t2 : T2
+		    by weakening on d2
+	    d11': Gamma, x' : T2'; M |- t11[t2][x'] : T1' 
+		    by induction hypothesis on d11r,d2'
+	    _: Gamma; M |- (fn x':T2' => t11[t2][x']) : T2' -> T1' 
+		    by rule T-Abs on d11'	    
+	end case
+
+	case rule
+	    d11: Gamma, x : T2; M |- t11[x] : T12 -> T
+	    d12: Gamma, x : T2; M |- t12[x] : T12
+	    --------------------------------------- T-App
+	    _  : Gamma, x : T2; M |- t11[x] t12[x] : T
+	is
+	    d11': Gamma; M |- t11[t2] : T12 -> T by induction hypothesis on d11,d2
+	    d12': Gamma; M |- t12[t2] : T12 by induction hypothesis on d12,d2
+	    _   : Gamma; M |- t11[t2] t12[t2] : T by rule T-App on d11',d12'
+	end case
+
+	case rule
+	    d11: Gamma, x : T2; M |- t11[x] : T11
+	    --------------------------------------------- T-Ref
+	    _  : Gamma, x : T2; M |- ref t11[x] : Ref T11
+	is
+	    d11': Gamma; M |- t11[t2] : T11 by induction hypothesis on d11,d2
+	    _ : Gamma; M |- ref t11[t2] : Ref T11 by rule T-Ref on d11'
+	end case
+
+	case rule
+	    d11: Gamma, x : T2; M |- t11[x] : Ref T1
+	    --------------------------------------------- T-Deref
+	    _  : Gamma, x : T2; M |- *t11[x] : T1
+	is
+	    d11': Gamma; M |- t11[t2] : Ref T1 
+		    by induction hypothesis on d11,d2
+	    _ : Gamma; M |- *t11[t2] : T1 by rule T-Deref on d11'
+	end case
+
+	case rule
+	    d11: Gamma, x : T2; M |- t11[x] : Ref T12
+	    d12: Gamma, x : T2; M |- t12[x] : T12
+	    --------------------------------------- T-Assign
+	    _  : Gamma, x : T2; M |- t11[x]=t12[x] : T
+	is
+	    d11': Gamma; M |- t11[t2] : Ref T12
+		    by induction hypothesis on d11,d2
+	    d12': Gamma; M |- t12[t2] : T12 by induction hypothesis on d12,d2
+	    _   : Gamma; M |- t11[t2]=t12[t2] : T by rule T-Assign on d11',d12'
+	end case
+
+	case rule
+	    L: M{n} = T11
+	    -------------------------------------- T-Loc
+	    _: Gamma, x : T2; M |- loc n : Ref T11
+	is
+	    _: Gamma; M |- loc n : Ref T11 by rule T-Loc on L
+	end case
+    end induction
+end theorem
+
+
+// The next few helper lemmas give useful facts about inclusion
+
+lemma includes-reflexive:
+    forall M
+    exists M >= M .
+    // TODO: easy induction
+end lemma
+
+lemma includes-preserves-lookup:
+    forall l: M{n} = T
+    forall i: M' >= M
+    exists M'{n} = T .
+    // TODO: Moderate induction
+end lemma
+
+// Lemma 13.5.6
+lemma includes-preserves-typing:
+    forall d: Gamma; M |- t : T
+    forall i: M' >= M
+    exists Gamma; M' |- t : T .
+    _ : Gamma; M' |- t : T by induction on d:
+	case rule
+	    ----------------------- T-Unit
+	    _: Gamma; M |- unit : Unit
+	is
+	    _: Gamma; M' |- unit : Unit by rule T-Unit
+	end case
+
+	case rule
+	    v: t : T in Gamma
+	    -------------------- T-Var
+	    _: Gamma; M |- t : T
+	is
+	    _: Gamma; M' |- t : T by rule T-Var on v
+	end case
+
+	case rule
+	    d1: Gamma, x : T1; M |- t1[x] : T2
+	    ---------------------------------------- T-Abs
+	    _: Gamma; M |- (fn x:T1 => t1[x]) : T1 -> T2
+	is
+	    d1': Gamma, x:T1; M' |- t1[x] : T2 by induction hypothesis on d1,i
+	    _  : Gamma; M' |- (fn x:T1 => t1[x]) : T1 -> T2 by rule T-Abs on d1'
+	end case
+
+	case rule
+	    d1: Gamma; M |- t1 : T2 -> T1
+	    d2: Gamma; M |- t2 : T2
+	    --------------------------- T-App
+	    _ : Gamma; M |- t1 t2 : T1
+	is
+	    d1': Gamma; M' |- t1 : T2 -> T1 by induction hypothesis on d1,i
+	    d2': Gamma; M' |- t2 : T2 by induction hypothesis on d2,i
+	    _  : Gamma; M' |- t1 t2 : T1 by rule T-App on d1',d2'
+	end case
+
+	// reference related rules
+
+	case rule
+	    d1: Gamma; M |- t1 : T1
+	    ------------------------------- T-Ref
+	    _ : Gamma; M |- ref t1 : Ref T1
+	is
+	    d1': Gamma; M' |- t1 : T1 by induction hypothesis on d1,i
+	    _  : Gamma; M' |- ref t1 : Ref T1 by rule T-Ref on d1'
+	end case
+
+	case rule
+	    d1: Gamma; M |- t1 : Ref T
+	    ------------------------------- T-Deref
+	    _ : Gamma; M |- *t1 : T
+	is
+	    d1': Gamma; M' |- t1 : Ref T by induction hypothesis on d1,i
+	    _  : Gamma; M' |- *t1 : T by rule T-Deref on d1'
+	end case
+
+	case rule
+	    d1: Gamma; M |- t1 : Ref T1
+	    d2: Gamma; M |- t2 : T1
+	    --------------------------- T-Assign
+	    _ : Gamma; M |- t1=t2 : Unit
+	is
+	    d1': Gamma; M' |- t1 : Ref T1 by induction hypothesis on d1,i
+	    d2': Gamma; M' |- t2 : T1 by induction hypothesis on d2,i
+	    _  : Gamma; M' |- t1=t2 : Unit by rule T-Assign on d1',d2'
+	end case
+
+	case rule
+	    L: M{n} = T1
+	    ----------------------------- T-Loc
+	    _: Gamma; M |- loc n : Ref T1
+	is
+	    L': M'{n} = T1 by lemma includes-preserves-lookup on L,i
+	    _: Gamma; M' |- loc n : Ref T1 by rule T-Loc on L'
+	end case
+    end induction
+end lemma
+
+// extend previous lemma to apply to whole memories
+lemma includes-preserves-memtyping:
+    forall t: M0 |- m : M
+    forall i: M0' >= M0
+    exists M0' |- m : M .
+    // TODO: easy induction
+end lemma
+
+
+// The next few helper lemmas are only needed
+// by the main lemma for showing preservation during allocation
+
+// helper lemma
+lemma can-type-allocate :
+    forall o: M0 |- m : M
+    forall a: m <- t = loc n ! m'
+    forall T
+    exists {n -> T}M = M' .
+    // TODO: Moderate induction
+end lemma
+
+lemma type-allocate-implies-lookup :
+    forall A: {n -> T}M = M'
+    exists M'{n} = T .
+    // TODO: easy induction
+end lemma
+
+// helper lemma
+lemma type-allocate-implies-includes :
+    forall A: {n -> T}M = M'
+    exists M' >= M .
+    // TODO: easy induction
+end lemma
+
+// helper lemma needed by hw following lemma
+lemma allocate-preserves-memtyping:
+    forall o: M0 |- m : M
+    forall d: *; M0 |- t : T
+    forall a: m <- t = loc n ! m'
+    forall A: {n -> T}M = M'
+    exists M0 |- m' : M' .
+    // TODO: Moderately difficult induction
+end lemma
+
+lemma allocate-preserves-extended:
+    forall o: M |- m : M
+    forall d: *; M |- t : T
+    forall a: m <- t = loc n ! m'
+    exists M'{n} = T /\ M' |- m':M' /\ M' >= M .
+    // getting all the pieces in place is tricky because memtyping
+    // has a double dependency on the store typing
+    // No induction or case analysis: 
+    // Stitch together the work of six helper lemmas
+end lemma
+
+
+// Needed for preservation in E-DerefLoc
+lemma lookup-in-ok-mem-typed:
+    forall ok: M0 |- m : M
+    forall L: M{n} = T
+    forall l: m{n} = t
+    exists *; M0 |- t : T.
+    // TODO: moderate induction
+end lemma
+
+
+// Lemma 13.5.5
+lemma update-preserves-ok-mem :
+    forall o: M0 |- m : M
+    forall L: M{n} = T
+    forall d: *; M0 |- t : T
+    forall u: {n -> t}m = m'
+    exists M0 |- m' : M .
+    // TODO: moderate induction
+end lemma
+
+
+// Theorem 13.5.3
+theorem preservation :
+    forall d: *; M |- t : T
+    forall o: M |- m : M
+    forall e: t|m -> t'|m'
+    exists M' |- t' : T; m' /\ M' >= M.
+    _ : M' |- t' : T; m' /\ M' >= M by induction on d:
+	case rule
+	    ----------------------- T-Unit
+	    _: *; M |- unit : Unit
+	is
+	    _: M |- t' : Unit; m' /\ M >= M
+		    by case analysis on e:
+	    end case analysis
+	end case
+
+	case rule
+	    v: t : T in *
+	    -------------------- T-Var
+	    _: *; M |- t : T
+	is
+	    _: M |- t' : T; m' /\ M >= M by case analysis on v:
+	    end case analysis
+	end case
+
+	case rule
+	    _: *, x : T1; M |- t1[x] : T2
+	    ---------------------------------------- T-Abs
+	    _: *; M |- (fn x:T1 => t1[x]) : T1 -> T2
+	is
+	    _: M |- t' : T; m' /\ M >= M by case analysis on e:
+	    end case analysis
+	end case
+
+	case rule
+	    d1: *; M |- t1 : T2 -> T1
+	    d2: *; M |- t2 : T2
+	    --------------------------- T-App
+	    _ : *; M |- t1 t2 : T1
+	is
+	    _: M' |- t' : T;m' /\ M'>=M by case analysis on e:
+		case rule
+		    e1: t1|m -> t1'|m'
+		    ------------------------ E-App1
+		    _ : t1 t2|m -> t1' t2|m'
+		is
+		    a1': M' |- t1' : T2 -> T1; m' /\ M' >= M 
+			    by induction hypothesis on d1,o,e1
+		    _ : M' |- t1' t2 : T1; m' /\ M' >= M
+			    by case analysis on a1':
+			case rule
+			    d1': *; M' |- t1' : T2 -> T1
+			    o': M' |- m' : M' 
+			    i : M' >= M
+			    ---------------------------------- preserved-def
+			    _: M' |- t1' : T2->T1;m' /\ M'>=M
+			is
+			    d2': *; M' |- t2 : T2 
+				    by lemma includes-preserves-typing on d2,i
+			    d': *; M' |- t1' t2 : T1 
+				    by rule T-App on d1',d2'
+			    _: M' |- t1' t2 : T1; m' /\ M'>=M
+				    by rule preserved-def on d',o',i
+			end case
+		    end case analysis
+		end case
+		case rule
+		    _ : t1 value
+		    e2: t2|m -> t2'|m'
+		    ------------------------ E-App2
+		    _ : t1 t2|m -> t1 t2'|m'
+		is
+		    a2': M' |- t2' : T2; m' /\ M'>=M
+			    by induction hypothesis on d2,o,e2
+		    _  : M' |- t1 t2' : T1; m' /\ M'>=M
+			    by case analysis on a2':
+			case rule
+			    d2': *; M' |- t2' : T2
+			    o' : M' |- m' : M'
+			    i  : M' >= M
+			    ------------------------------------ preserved-def
+			    _: M' |- t2' : T2; m' /\ M'>=M
+			is
+			    d1': *; M' |- t1 : T2 -> T1 
+				    by lemma includes-preserves-typing on d1,i
+			    d': *; M' |- t1 t2' : T1 
+				    by rule T-App on d1',d2'
+			    _ : M' |- t1 t2' : T1; m' /\ M'>=M
+				    by rule preserved-def on d',o',i
+			end case
+		    end case analysis
+		end case
+		case rule
+		    _: t2 value
+		    ----------------------------------------- E-AppAbs
+		    _: (fn x:T2' => t11[x]) t2|m -> t11[t2]|m
+		is
+		    // We want to invert the typing on the abstraction
+		    // and want to avoid having to handle T-Var.
+		    // We do this by using the canonical forms lemma.
+		    // It's a little awkward, but it trades one level
+		    // deeper of case analysis against avoiding an extra
+		    // case.  I felt it was worth it.  YMMV
+		    v1: (fn x:T2' => t11[x]) value by rule val-fn
+		    cf: *; M |- (fn x:T2' => t11[x]) value : T2 -> T1
+			    by lemma canonical-forms on d1,v1
+		    d': *; M |- t11[t2] : T1 by case analysis on cf:
+			case rule
+			    d11: *, x:T2; M |- t11[x] : T1
+			    --------------------------------- canonical-fn
+			    _: *; M |- (fn x:T2 => t11[x]) value : T2 -> T1
+			is
+			    _: *; M |- t11[t2] : T1 
+				    by lemma subst on d11,d2
+			end case
+		    end case analysis
+		    i : M >= M by lemma includes-reflexive on M
+		    _ : M |- t11[t2] : T1; m /\ M >= M
+			    by rule preserved-def on d',o,i
+		end case
+	    end case analysis
+	end case
+
+	// reference related rules
+	// TODO: Difficult and long
+    end induction
+end theorem
+
+// END of optional section
+*/
+
+

@@ -1,0 +1,1046 @@
+/* CompSci 732
+ * Fall 2011
+ * Homework #11
+ */
+
+package edu.uwm.cs.cs732;
+
+terminals contradiction unit value
+          Unit in fn Rec fold unfold Top
+
+
+syntax
+
+t ::= unit
+  | fn x:T => t[x]
+  | x
+  | t t
+  | t,t
+  | t@1
+  | t@2
+  | fold T t
+  | unfold T t
+
+T ::= Top
+  | Unit
+  | T -> T
+  | T * T
+  | Rec X => T[X]
+  | X
+
+Gamma ::= *
+      | Gamma, x : T
+
+
+
+judgment absurd: contradiction
+
+
+judgment equality: t == t
+
+------ eq
+t == t
+
+
+judgment typeequality: T == T
+
+------ type-eq
+T == T
+
+
+judgment isavalue: t value
+
+
+---------- val-unit
+unit value
+
+-------------------- val-fn
+fn x:T => t[x] value
+
+t1 value
+t2 value
+------------- val-pair
+(t1,t2) value
+
+t value
+---------------- val-fold
+fold (T) t value
+
+
+judgment eval: t -> t
+
+t1 -> t1'
+--------------- E-App1
+t1 t2 -> t1' t2
+
+t1 value
+t2 -> t2'
+--------------- E-App2
+t1 t2 -> t1 t2'
+
+t2 value
+------------------------------ E-AppAbs
+(fn x:T => t1[x]) t2 -> t1[t2]
+
+t1 value
+t2 value
+--------------- E-PairBeta1
+(t1,t2)@1 -> t1
+
+t1 value
+t2 value
+--------------- E-PairBeta2
+(t1,t2)@2 -> t2
+
+t1 -> t1'
+------------- E-Proj1
+t1@1 -> t1'@1
+
+t1 -> t1'
+------------- E-Proj2
+t1@2 -> t1'@2
+
+t1 -> t1'
+------------------- E-Pair1
+(t1,t2) -> (t1',t2)
+
+t1 value
+t2 -> t2'
+------------------- E-Pair2
+(t1,t2) -> (t1,t2')
+
+t value
+-------------------------- E-UnfldFld
+unfold T1 (fold T2 t) -> t
+
+t -> t'
+--------------------- E-Fld
+fold T t -> fold T t'
+
+t -> t'
+------------------------- E-Unfld
+unfold T t -> unfold T t'
+
+
+judgment notstuck: t ->?
+
+t value
+------- ns-value
+t ->?
+
+t -> t'
+------- ns-eval
+t ->?
+
+
+
+judgment isvar: t : T in Gamma
+assumes Gamma
+
+----------------------- var
+x : T in (Gamma, x : T)
+
+
+judgment type: Gamma |- t : T
+assumes Gamma
+
+-------------------- T-Unit
+Gamma |- unit : Unit
+
+t : T in Gamma
+-------------- T-Var
+Gamma |- t : T
+
+Gamma, x : T1 |- t[x] : T2
+------------------------------------- T-Abs
+Gamma |- (fn x:T1 => t[x]) : T1 -> T2
+
+Gamma |- t1 : T2 -> T1
+Gamma |- t2 : T2
+----------------------- T-App
+Gamma |- t1 t2 : T1
+
+Gamma |- t1 : T1
+Gamma |- t2 : T2
+-------------------------- T-Pair
+Gamma |- (t1,t2) : T1 * T2
+
+Gamma |- t : T1 * T2
+-------------------- T-Proj1
+Gamma |- t@1 : T1
+
+Gamma |- t : T1 * T2
+-------------------- T-Proj2
+Gamma |- t@2 : T2
+
+Gamma |- t : T[Rec X => T[X]]
+----------------------------------------------- T-Fld
+Gamma |- fold (Rec X => T[X]) t : Rec X => T[X]
+
+Gamma |- t : Rec X => T[X]
+---------------------------------------------------- T-Unfld
+Gamma |- unfold (Rec X => T[X]) t : T[Rec X => T[X]]
+
+
+judgment canonical: Gamma |- t value : T
+assumes Gamma
+
+Gamma, x:T1 |- t[x] : T2
+------------------------------------------- canonical-fn
+Gamma |- (fn x:T1 => t[x]) value : T1 -> T2
+
+--------------------------- canonical-unit
+Gamma |- unit value : Unit
+
+Gamma |- t1 value : T1
+Gamma |- t2 value : T2
+-------------------------------- canonical-pair
+Gamma |- (t1,t2) value : T1 * T2
+
+Gamma |- t value : T[Rec X => T[X]]
+----------------------------------------------------- canonical-fold
+Gamma |- fold (Rec X => T[X]) t value : Rec X => T[X]
+
+
+
+lemma canonical-forms :
+    forall d: Gamma |- t : T
+    forall v: t value
+    exists Gamma |- t value : T .
+    _ : Gamma |- t value : T by induction on v:
+	case rule
+	    ------------- val-unit
+	    _: unit value
+	is
+	    _ : Gamma |- t value : T by case analysis on d:
+		case rule
+		    ----------------------- T-Unit
+		    _: Gamma |- unit : Unit
+		is
+		    _: Gamma |- unit value : Unit by rule canonical-unit
+		end case
+		case rule
+		    v: unit : T in Gamma
+		    -------------------- T-Var
+		    _: Gamma |- unit : T
+		is
+		    _: Gamma |- unit value : T by case analysis on v:
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    --------------------------- val-fn
+	    _: (fn x:T1 => t1[x]) value
+	is
+	    _ : Gamma |- t value : T by case analysis on d:
+		case rule
+		    d1: Gamma, x : T1 |- t1[x] : T2
+		    --------------------------------------- T-Abs
+		    _: Gamma |- fn x:T1 => t2[x] : T1 -> T2
+		is
+		    _: Gamma |- fn x:T1 => t2[x] value : T1 -> T2
+			    by rule canonical-fn on d1
+		end case
+		case rule
+		    v: fn x:T1 => t2[x] : T in Gamma
+		    -------------------------------- T-Var
+		    _: Gamma |- fn x:T1 => t2[x] : T
+		is
+		    _: Gamma |- t value : T by case analysis on v:
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    v1: t1 value
+	    v2: t2 value
+	    ---------------- val-pair
+	    _: (t1,t2) value
+	is
+	    _: Gamma |- t value : T by case analysis on d:
+		case rule
+		    d1: Gamma |- t1 : T1
+		    d2: Gamma |- t2 : T2
+		    ------------------------------ T-Pair
+		    _ : Gamma |- (t1,t2) : T1 * T2
+		is
+		    cf1: Gamma |- t1 value : T1 by induction hypothesis on d1,v1
+		    cf2: Gamma |- t2 value : T2 by induction hypothesis on d2,v2
+		    _ : Gamma |- (t1,t2) value : T1 * T2
+			    by rule canonical-pair on cf1,cf2
+		end case
+		case rule
+		    v: t:T in Gamma
+		    ----------------- T-Var
+		    _: Gamma |- t : T
+		is
+		    _: Gamma |- t value : T by case analysis on v:
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+		v': t' value
+		------------------- val-fold
+		_: fold T' t' value
+	is
+		_: Gamma |- fold T' t' value : T by case analysis on d:
+			case rule
+				d': Gamma |- t' : T''[Rec X => T''[X]]
+				------------------------------------------------------ T-Fld
+				_: Gamma |- fold (Rec X => T''[X]) t' : Rec X => T''[X]
+			is
+				c': Gamma |- t' value : T''[Rec X => T''[X]] by induction hypothesis on d', v'
+				_: Gamma |- fold (Rec X => T''[X]) t' value : Rec X => T''[X] by rule canonical-fold on c'
+			end case
+
+			case rule
+				i: fold T' t' : T in Gamma
+				-------------------------- T-Var
+				_: Gamma |- fold T' t' : T
+			is
+				_: Gamma |- t value : T by case analysis on i:
+				end case analysis
+			end case
+		end case analysis
+	end case
+
+    end induction
+end lemma
+
+
+// sometimes we need to unpack canonical forms too:
+lemma canonical-implies-typed :
+    forall c: Gamma |- t value : T
+    exists Gamma |- t : T .
+    _: Gamma |- t : T by induction on c:
+	case rule
+	    ----------------------------- canonical-unit
+	    _: Gamma |- unit value : Unit
+	is
+	    _: Gamma |- unit : Unit by rule T-Unit
+	end case
+
+	case rule
+	    d1: Gamma, x:T1 |- t1[x] : T2
+	    ------------------------------------------------ canonical-fn
+	    _ : Gamma |- (fn x:T1 => t1[x]) value : T1 -> T2
+	is
+	    _ : Gamma |- (fn x:T1 => t1[x]) : T1 -> T2 by rule T-Abs on d1
+	end case
+
+	case rule
+	    c1: Gamma |- t1 value : T1
+	    c2: Gamma |- t2 value : T2
+	    ------------------------------------ canonical-pair
+	    _ : Gamma |- (t1,t2) value : T1 * T2
+	is
+	    d1: Gamma |- t1 : T1 by induction hypothesis on c1
+	    d2: Gamma |- t2 : T2 by induction hypothesis on c2
+	    _ : Gamma |- (t1,t2) : T1 * T2 by rule T-Pair on d1,d2
+	end case
+
+	case rule
+		c': Gamma |- t' value : T'[Rec X => T'[X]]
+		----------------------------------------------------------- canonical-fold
+		_: Gamma |- fold (Rec X => T'[X]) t' value : Rec X => T'[X]
+	is
+		d': Gamma |- t' : T'[Rec X => T'[X]] by induction hypothesis on c'
+		_: Gamma |- fold (Rec X => T'[X]) t' : Rec X => T'[X] by rule T-Fld on d'
+	end case
+
+    end induction
+end lemma
+
+
+
+lemma canonical-implies-value :
+    forall c: Gamma |- t value : T
+    exists t value .
+    _: t value by induction on c:
+	case rule
+	    ----------------------------- canonical-unit
+	    _: Gamma |- unit value : Unit
+	is
+	    _: unit value by rule val-unit
+	end case
+
+	case rule
+	    d1: Gamma, x:T1 |- t1[x] : T2
+	    ------------------------------------------------ canonical-fn
+	    _ : Gamma |- (fn x:T1 => t1[x]) value : T1 -> T2
+	is
+	    _: (fn x:T1 => t1[x]) value by rule val-fn
+	end case
+
+	case rule
+	    c1: Gamma |- t1 value : T1
+	    c2: Gamma |- t2 value : T2
+	    ------------------------------------ canonical-pair
+	    _ : Gamma |- (t1,t2) value : T1 * T2
+	is
+	    v1: t1 value by induction hypothesis on c1
+	    v2: t2 value by induction hypothesis on c2
+	    _: (t1,t2) value by rule val-pair on v1,v2
+	end case
+
+	case rule
+		c': Gamma |- t' value : T'[Rec X => T'[X]]
+		----------------------------------------------------------- canonical-fold
+		_: Gamma |- fold (Rec X => T'[X]) t' value : Rec X => T'[X]
+	is
+		v': t' value by induction hypothesis on c'
+		_: fold (Rec X => T'[X]) t' value by rule val-fold on v'
+	end case
+
+    end induction
+end lemma
+
+
+theorem progress :
+    forall d: * |- t : T
+    exists t ->? .
+    _ : t ->? by induction on d:
+	case rule
+	    ------------------ T-Unit
+	    _: * |- unit : Unit
+	is
+	    v: unit value by rule val-unit
+	    _: unit ->? by rule ns-value on v
+	end case
+
+	case rule
+	    v: t : T in *
+	    ------------- T-Var
+	    _: * |- t : T
+	is
+	    _: t ->? by case analysis on v:
+	    end case analysis
+	end case
+
+	case rule
+	    d1: *, x:T1 |- t1[x] : T2
+	    ------------------------------------ T-Abs
+	    _ : * |- fn x:T1 => t1[x] : T1 -> T2
+	is
+	    v : fn x:T1 => t1[x] value by rule val-fn
+	    _ : t ->? by rule ns-value on v
+	end case
+
+	case rule
+	    d1: * |- t1 : T2 -> T1
+	    d2: * |- t2 : T2
+	    ---------------------- T-App
+	    _: * |- t1 t2 : T1
+	is
+	    ns1: t1 ->? by induction hypothesis on d1
+	    ns2: t2 ->? by induction hypothesis on d2
+	    _ : t1 t2 ->? by case analysis on ns1:
+		case rule
+		    e1: t1 -> t1'
+		    ------------- ns-eval
+		    _ : t1 ->?
+		is
+		    e: t1 t2 -> t1' t2 by rule E-App1 on e1
+		    _: t1 t2 ->? by rule ns-eval on e
+		end case
+		case rule
+		    v1: t1 value
+		    ------------ ns-value
+		    _ : t1 ->?
+		is
+		    _ : t1 t2 ->? by case analysis on ns2:
+			case rule
+			    e2: t2 -> t2'
+			    ------------- ns-eval
+			    _ : t2 ->?
+			is
+			    e: t1 t2 -> t1 t2' by rule E-App2 on v1,e2
+			    _: t1 t2 ->? by rule ns-eval on e
+			end case
+			case rule
+			    v2: t2 value
+			    ------------ ns-value
+			    _ : t2 ->?
+			is
+			    c: * |- t1 value : T2 -> T1 
+				    by lemma canonical-forms on d1,v1
+			    _ : t1 t2 ->? by case analysis on c:
+				case rule
+				    _: *, x:T2 |- t11[x] : T1
+				    ----------------------------- canonical-fn
+				    _: * |- fn x:T2 => t11[x] value : T2 -> T1
+				is
+				    e: t1 t2 -> t11[t2] by rule E-AppAbs on v2
+				    _: t1 t2 ->? by rule ns-eval on e
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    d1: * |- t1 : T1
+	    d2: * |- t2 : T2
+	    -------------------- T-Pair
+	    _: * |- (t1,t2) : T1 * T2
+	is
+	    ns1: t1 ->? by induction hypothesis on d1
+	    ns2: t2 ->? by induction hypothesis on d2
+	    _: (t1,t2) ->? by case analysis on ns1:
+		case rule
+		    e1: t1 -> t1'
+		    ------------- ns-eval
+		    _ : t1 ->?
+		is
+		    e: (t1,t2) -> (t1',t2) by rule E-Pair1 on e1
+		    _: (t1,t2) ->? by rule ns-eval on e
+		end case
+		case rule
+		    v1: t1 value
+		    ------------ ns-value
+		    _ : t1 -> ?
+		is
+		    _: (t1,t2) ->? by case analysis on ns2:
+			case rule
+			    e2: t2 -> t2'
+			    ------------- ns-eval
+			    _ : t2 ->?
+			is
+			    e: (t1,t2) -> (t1,t2') by rule E-Pair2 on v1,e2
+			    _: (t1,t2) ->? by rule ns-eval on e
+			end case
+			case rule
+			    v2: t2 value
+			    ------------ ns-value
+			    _ : t2 -> ?
+			is
+			    v: (t1,t2) value by rule val-pair on v1,v2
+			    _: (t1,t2) ->? by rule ns-value on v
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    d1: * |- t1 : T1 * T2
+	    ------------------------- T-Proj1
+	    _ : * |- t1 @ 1 : T1
+	is
+	    ns1: t1 ->? by induction hypothesis on d1
+	    _: t1 @ 1 ->? by case analysis on ns1:
+		case rule
+		    e1: t1 -> t1'
+		    ------------- ns-eval
+		    _ : t1 ->?
+		is
+		    e: t1 @ 1 -> t1' @ 1 by rule E-Proj1 on e1
+		    _: t1 @ 1 ->? by rule ns-eval on e
+		end case
+		case rule
+		    v1: t1 value
+		    ------------ ns-value
+		    _ : t1 -> ?
+		is
+		    cf: * |- t1 value : T1 * T2 
+			    by lemma canonical-forms on d1,v1
+		    _ : t1 @ 1 ->? by case analysis on cf:
+			case rule
+			    cf1: * |- t11 value : T1
+			    cf2: * |- t12 value : T2
+			    ------------------------------------- canonical-pair
+			    _: * |- (t11,t12) value : T1 * T2
+			is
+			    v1: t11 value
+				    by lemma canonical-implies-value on cf1
+			    v2: t12 value 
+				    by lemma canonical-implies-value on cf2
+			    e : t1@1 -> t11 by rule E-PairBeta1 on v1,v2
+			    _ : t1@1 ->? by rule ns-eval on e
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    d1: * |- t1 : T1 * T2
+	    ------------------------- T-Proj2
+	    _ : * |- t1 @ 2 : T2
+	is
+	    ns1: t1 ->? by induction hypothesis on d1
+	    _: t1 @ 2 ->? by case analysis on ns1:
+		case rule
+		    e1: t1 -> t1'
+		    ------------- ns-eval
+		    _ : t1 ->?
+		is
+		    e: t1 @ 2 -> t1' @ 2 by rule E-Proj2 on e1
+		    _: t1 @ 2 ->? by rule ns-eval on e
+		end case
+		case rule
+		    v1: t1 value
+		    ------------ ns-value
+		    _ : t1 -> ?
+		is
+		    cf: * |- t1 value : T1 * T2 
+			    by lemma canonical-forms on d1,v1
+		    _ : t1 @ 2 ->? by case analysis on cf:
+			case rule
+			    cf1: * |- t11 value : T1
+			    cf2: * |- t12 value : T2
+			    ------------------------------------- canonical-pair
+			    _: * |- (t11,t12) value : T1 * T2
+			is
+			    v1: t11 value
+				    by lemma canonical-implies-value on cf1
+			    v2: t12 value 
+				    by lemma canonical-implies-value on cf2
+			    e : t1@2 -> t12 by rule E-PairBeta2 on v1,v2
+			    _ : t1@2 ->? by rule ns-eval on e
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+		d': * |- t' : T'[Rec X => T'[X]]
+		------------------------------------------------- T-Fld
+		_: * |- fold (Rec X => T'[X]) t' : Rec X => T'[X]
+	is
+		ns': t' ->? by induction hypothesis on d'
+		_: fold (Rec X => T'[X]) t' ->? by case analysis on ns':
+			case rule
+				v': t' value
+				----------- ns-value
+				_: t' ->?
+			is
+				v: fold (Rec X => T'[X]) t' value by rule val-fold on v'
+				_: fold (Rec X => T'[X]) t' ->? by rule ns-value on v
+			end case
+
+			case rule
+				e': t' -> t''
+				------------- ns-eval
+				_: t' ->?
+			is
+				e: fold (Rec X => T'[X]) t' -> fold (Rec X => T'[X]) t'' by rule E-Fld on e'
+				_: fold (Rec X => T'[X]) t' ->? by rule ns-eval on e
+			end case
+		end case analysis
+	end case
+
+	case rule
+		d': * |- t' : Rec X => T'[X]
+		------------------------------------------------------- T-Unfld
+		_: * |- unfold (Rec X => T'[X]) t' : T'[Rec X => T'[X]]
+	is
+		ns': t' ->? by induction hypothesis on d'
+		_: unfold (Rec X => T'[X]) t' ->? by case analysis on ns':
+			case rule
+				v': t' value
+				----------- ns-value
+				_: t' ->?
+			is
+				c': * |- t' value : Rec X => T'[X] by lemma canonical-forms on d', v'
+				_: unfold (Rec X => T'[X]) t' ->? by case analysis on c':
+					case rule
+						c'': * |- t'' value : T'[Rec X => T'[X]]
+						-------------------------------------------------------- canonical-fold
+						_: * |- fold (Rec X => T'[X]) t'' value : Rec X => T'[X]
+					is
+						v'': t'' value by lemma canonical-implies-value on c''
+						e: unfold (Rec X => T'[X]) fold (Rec X => T'[X]) t'' -> t'' by rule E-UnfldFld on v''
+						_: unfold (Rec X => T'[X]) fold (Rec X => T'[X]) t'' ->? by rule ns-eval on e
+					end case
+				end case analysis
+			end case
+
+			case rule
+				e': t' -> t''
+				------------- ns-eval
+				_: t' ->?
+			is
+				e: unfold (Rec X => T'[X]) t' -> unfold (Rec X => T'[X]) t'' by rule E-Unfld on e'
+				_: unfold (Rec X => T'[X]) t' ->? by rule ns-eval on e
+			end case
+		end case analysis
+	end case
+
+    end induction
+end theorem
+
+
+lemma subst :
+    forall d1: Gamma, x : T2 |- t1[x] : T1
+    forall d2: Gamma |- t2 : T2
+    exists Gamma |- t1[t2] : T1 .
+    _ : Gamma |- t1[t2] : T1 by induction on d1:
+
+	case rule
+	    ------------------------------- T-Unit
+	    _: Gamma, x : T2 |- unit : Unit
+	is
+	    _: Gamma |- unit : Unit by rule T-Unit
+	end case
+
+	case rule
+	    v: t1[x] : T1 in (Gamma, x:T2)
+	    ------------------------------- T-Var
+	    _: Gamma, x:T2 |- t1[x] : T1
+	is
+	    _: Gamma |- t1[t2] : T1 by case analysis on v:
+		case rule
+		    ------------------------ var
+		    _: x:T2 in (Gamma, x:T2)
+		is
+		    _: Gamma |- t2 : T2 by d2
+		end case
+		case rule
+		    --------------------------------- var
+		    _: x':T' in (Gamma', x':T', x:T2)
+		is
+		    v': x':T' in (Gamma', x':T') by rule var
+		    _: Gamma', x':T' |- x':T' by rule T-Var on v'
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    d11: Gamma, x : T2, x' : T2' |- t11[x][x'] : T1'
+	    ------------------------------------------------------------ T-Abs
+	    _  : Gamma, x : T2 |- (fn x':T2' => t11[x][x']) : T2' -> T1'
+	is
+	    d11r : Gamma, x' : T2', x : T2 |- t11[x][x'] : T1' 
+		    by exchange on d11
+	    d2' : Gamma, x' : T2' |- t2 : T2
+		    by weakening on d2
+	    d11': Gamma, x' : T2' |- t11[t2][x'] : T1' 
+		    by induction hypothesis on d11r,d2'
+	    _: Gamma |- (fn x':T2' => t11[t2][x']) : T2' -> T1' 
+		    by rule T-Abs on d11'	    
+	end case
+
+	case rule
+	    d11: Gamma, x : T2 |- t11[x] : T12 -> T
+	    d12: Gamma, x : T2 |- t12[x] : T12
+	    --------------------------------------- T-App
+	    _  : Gamma, x : T2 |- t11[x] t12[x] : T
+	is
+	    d11': Gamma |- t11[t2] : T12 -> T by induction hypothesis on d11,d2
+	    d12': Gamma |- t12[t2] : T12 by induction hypothesis on d12,d2
+	    _   : Gamma |- t11[t2] t12[t2] : T by rule T-App on d11',d12'
+	end case
+
+	case rule
+	    d11: Gamma, x : T2 |- t11[x] : T11
+	    d12: Gamma, x : T2 |- t12[x] : T12
+	    ------------------------------------------------- T-Pair
+	    _  : Gamma, x : T2 |- (t11[x],t12[x]) : T11 * T12
+	is
+	    d11': Gamma |- t11[t2] : T11 by induction hypothesis on d11,d2
+	    d12': Gamma |- t12[t2] : T12 by induction hypothesis on d12,d2
+	    _   : Gamma |- (t11[t2],t12[t2]) : T11 * T12 
+		    by rule T-Pair on d11',d12'
+	end case
+
+	case rule
+	    d11: Gamma, x : T2 |- t11[x] : T1 * T
+	    ------------------------------------- T-Proj1
+	    _  : Gamma, x : T2 |- t11[x]@1 : T1
+	is
+	    d11': Gamma |- t11[t2] : T1 * T by induction hypothesis on d11,d2
+	    _   : Gamma |- t11[t2]@1 : T1 by rule T-Proj1 on d11'
+	end case
+
+	case rule
+	    d11: Gamma, x : T2 |- t11[x] : T * T1
+	    ------------------------------------- T-Proj2
+	    _  : Gamma, x : T2 |- t11[x]@2 : T1
+	is
+	    d11': Gamma |- t11[t2] : T * T1 by induction hypothesis on d11,d2
+	    _   : Gamma |- t11[t2]@2 : T1 by rule T-Proj2 on d11'
+	end case
+
+	case rule
+		dx: Gamma, x:T2 |- t[x] : T[Rec X => T[X]]
+		-------------------------------------------------------- T-Fld
+		_: Gamma, x:T2 |- fold (Rec X => T[X]) t[x] : Rec X => T[X]
+	is
+		d: Gamma |- t[t2] : T[Rec X => T[X]] by induction hypothesis on dx, d2
+		_: Gamma |- fold (Rec X => T[X]) t[t2] : Rec X => T[X] by rule T-Fld on d
+	end case
+
+	case rule
+		dx: Gamma, x:T2 |- t[x] : Rec X => T[X]
+		---------------------------------------------------------------- T-Unfld
+		_: Gamma, x:T2 |- unfold (Rec X => T[X]) t[x] : T[Rec X => T[X]]
+	is
+		d: Gamma |- t[t2] : Rec X => T[X] by induction hypothesis on dx, d2
+		_: Gamma |- unfold (Rec X => T[X]) t[t2] : T[Rec X => T[X]] by rule T-Unfld on d
+	end case
+
+    end induction
+end theorem
+
+
+theorem preservation :
+    forall d: Gamma |- t : T
+    forall e: t -> t'
+    exists Gamma |- t' : T .
+    _ : Gamma |- t' : T by induction on d:
+	case rule
+	    ----------------------- T-Unit
+	    _: Gamma |- unit : Unit
+	is
+	    _: Gamma |- t' : Unit by case analysis on e:
+	    end case analysis
+	end case
+
+	case rule
+	    v: t : T in Gamma
+	    ----------------- T-Var
+	    _: Gamma |- t : T
+	is
+	    _: Gamma |- t' : T by case analysis on v:
+		case rule
+		    ----------------------- var
+		    _: x':T in Gamma', x':T
+		is
+		    _: Gamma |- t' : T by case analysis on e:
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    _: Gamma, x : T1 |- t1[x] : T2
+	    ---------------------------------------- T-Abs
+	    _: Gamma |- (fn x:T1 => t1[x]) : T1 -> T2
+	is
+	    _: Gamma |- t' : T by case analysis on e:
+	    end case analysis
+	end case
+
+	case rule
+	    d1: Gamma |- t1 : T2 -> T1
+	    d2: Gamma |- t2 : T2
+	    --------------------------- T-App
+	    _ : Gamma |- t1 t2 : T1
+	is
+	    _: Gamma |- t' : T by case analysis on e:
+		case rule
+		    e1: t1 -> t1'
+		    ------------------- E-App1
+		    _ : t1 t2 -> t1' t2
+		is
+		    d1': Gamma |- t1' : T2 -> T1 
+			    by induction hypothesis on d1,e1
+		    _  : Gamma |- t1' t2 : T1 by rule T-App on d1',d2
+		end case
+		case rule
+		    _ : t1 value
+		    e2: t2 -> t2'
+		    ------------------- E-App2
+		    _ : t1 t2 -> t1 t2'
+		is
+		    d2': Gamma |- t2' : T2
+			    by induction hypothesis on d2,e2
+		    _  : Gamma |- t1 t2' : T1 by rule T-App on d1,d2'
+		end case
+		case rule
+		    _: t2 value
+		    ------------------------------------- E-AppAbs
+		    _: (fn x:T2' => t11[x]) t2 -> t11[t2]
+		is
+		    v1: (fn x:T2' => t11[x]) value by rule val-fn
+		    cf: Gamma |- (fn x:T2' => t11[x]) value : T2 -> T1
+			    by lemma canonical-forms on d1,v1
+		    _ : Gamma |- t11[t2] : T1 by case analysis on cf:
+			case rule
+			    d11: Gamma, x:T2 |- t11[x] : T1
+			    --------------------------------- canonical-fn
+			    _: Gamma |- (fn x:T2 => t11[x]) value : T2 -> T1
+			is
+			    _: Gamma |- t11[t2] : T1 
+				    by lemma subst on d11,d2
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    d1: Gamma |- t1 : T1
+	    d2: Gamma |- t2 : T2
+	    ------------------------------ T-Pair
+	    _ : Gamma |- (t1,t2) : T1 * T2
+	is
+	    _ : Gamma |- t' : T1 * T2 by case analysis on e:
+		case rule
+		    e1: t1 -> t1'
+		    ---------------------- E-Pair1
+		    _: (t1,t2) -> (t1',t2)
+		is
+		    d1': Gamma |- t1' : T1 by induction hypothesis on d1,e1
+		    _  : Gamma |- (t1',t2) : T1 * T2 by rule T-Pair on d1',d2
+		end case
+		case rule
+		    _ : t1 value
+		    e2: t2 -> t2'
+		    ---------------------- E-Pair2
+		    _: (t1,t2) -> (t1,t2')
+		is
+		    d2': Gamma |- t2' : T2 by induction hypothesis on d2,e2
+		    _  : Gamma |- (t1,t2') : T1 * T2 by rule T-Pair on d1,d2'
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    d1: Gamma |- t1 : T1 * T2
+	    ------------------------- T-Proj1
+	    _ : Gamma |- t1@1 : T1
+	is
+	    _ : Gamma |- t' : T1 by case analysis on e:
+		case rule
+		    e1: t1 -> t1'
+		    ----------------- E-Proj1
+		    _ : t1@1 -> t1'@1
+		is
+		    d1': Gamma |- t1' : T1 * T2 by induction hypothesis on d1,e1
+		    _  : Gamma |- t1'@1 : T1 by rule T-Proj1 on d1'
+		end case
+		case rule
+		    v11: t11 value
+		    v12: t12 value
+		    --------------------- E-PairBeta1
+		    _: (t11,t12)@1 -> t11
+		is
+		    v1: (t11,t12) value by rule val-pair on v11,v12
+		    cf1: Gamma |- (t11,t12) value : T1 * T2 
+			    by lemma canonical-forms on d1,v1
+		    _ : Gamma |- t11 : T1 by case analysis on cf1:
+			case rule
+			    cf11: Gamma |- t11 value : T1 
+			    cf12: Gamma |- t12 value : T2
+			    --------------------------------------canonical-pair
+			    _ : Gamma |- (t11,t12) value : T1 * T2
+			is
+			    d11: Gamma |- t11 : T1
+				    by lemma canonical-implies-typed on cf11
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    d1: Gamma |- t1 : T1 * T2
+	    ------------------------- T-Proj2
+	    _ : Gamma |- t1@2 : T2
+	is
+	    _ : Gamma |- t' : T2 by case analysis on e:
+		case rule
+		    e1: t1 -> t1'
+		    ----------------- E-Proj2
+		    _ : t1@2 -> t1'@2
+		is
+		    d1': Gamma |- t1' : T1 * T2 by induction hypothesis on d1,e1
+		    _  : Gamma |- t1'@2 : T2 by rule T-Proj2 on d1'
+		end case
+		case rule
+		    v11: t11 value
+		    v12: t12 value
+		    --------------------- E-PairBeta2
+		    _: (t11,t12)@2 -> t12
+		is
+		    v1: (t11,t12) value by rule val-pair on v11,v12
+		    cf1: Gamma |- (t11,t12) value : T1 * T2 
+			    by lemma canonical-forms on d1,v1
+		    _ : Gamma |- t12 : T2 by case analysis on cf1:
+			case rule
+			    cf11: Gamma |- t11 value : T1 
+			    cf12: Gamma |- t12 value : T2
+			    --------------------------------------canonical-pair
+			    _ : Gamma |- (t11,t12) value : T1 * T2
+			is
+			    d11: Gamma |- t12 : T2
+				    by lemma canonical-implies-typed on cf12
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+		d1: Gamma |- t1 : T1[Rec X => T1[X]]
+		----------------------------------------------------- T-Fld
+		_: Gamma |- fold (Rec X => T1[X]) t1 : Rec X => T1[X]
+	is
+		_: Gamma |- t' : Rec X => T1[X] by case analysis on e:
+			case rule
+				e1: t1 -> t1'
+				-------------------------------------------------------- E-Fld
+				_: fold (Rec X => T1[X]) t1 -> fold (Rec X => T1[X]) t1'
+			is
+				d1': Gamma |- t1' : T1[Rec X => T1[X]] by induction hypothesis on d1, e1
+				_: Gamma |- fold (Rec X => T1[X]) t1' : Rec X => T1[X] by rule T-Fld on d1'
+			end case
+		end case analysis
+	end case
+
+	case rule
+		d1: Gamma |- t1 : Rec X => T1[X]
+		----------------------------------------------------------- T-Unfld
+		_: Gamma |- unfold (Rec X => T1[X]) t1 : T1[Rec X => T1[X]]
+	is
+		_: Gamma |- t' : T1[Rec X => T1[X]] by case analysis on e:
+			case rule
+				_: t' value
+				------------------------------------------- E-UnfldFld
+				_: unfold (Rec X => T1[X]) fold T2 t' -> t'
+			is
+				_: Gamma |- t' : T1[Rec X => T1[X]] by case analysis on d1:
+					case rule
+						d': Gamma |- t' : T1[Rec X => T1[X]]
+						----------------------------------------------------- T-Fld
+						_: Gamma |- fold (Rec X => T1[X]) t' : Rec X => T1[X]
+					is
+						_: Gamma |- t' : T1[Rec X => T1[X]] by d'
+					end case
+
+					case rule
+						i: t1 : Rec X => T1[X] in Gamma
+						------------------------------- T-Var
+						_: Gamma |- t1 : Rec X => T1[X]
+					is
+						_: Gamma |- t' : T by case analysis on i:
+						end case analysis
+					end case
+				end case analysis
+			end case
+
+			case rule
+				e1: t1 -> t1'
+				------------------------------------------------------------ E-Unfld
+				_: unfold (Rec X => T1[X]) t1 -> unfold (Rec X => T1[X]) t1'
+			is
+				d1': Gamma |- t1' : Rec X => T1[X] by induction hypothesis on d1, e1
+				_: Gamma |- unfold (Rec X => T1[X]) t1' : T1[Rec X => T1[X]] by rule T-Unfld on d1'
+			end case
+		end case analysis
+	end case
+
+    end induction
+end theorem
+
+

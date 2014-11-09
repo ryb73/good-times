@@ -1,0 +1,87 @@
+Knitter Conjecture
+
+if t -/> and t not value
+t has one of the 7 stuck terms
+
+
+
+T := Int | Bool
+
+judgment type: t : T
+
+t1 : Boolean
+t2 : T
+t3 : T
+-------------------------	t-if
+if t1 then t2 else t3 : T
+
+t : Int
+-----------		t-succ
+succ t : Int
+
+t : Int
+------------
+pred t : Int
+
+t : Int
+------------
+iszero t : Bool
+
+---------------
+true : Bool
+
+----------------
+false : Bool
+
+-------
+0 : Int
+
+
+theorem preservation
+	forall u: t : T
+	forall e: t -> t'
+	exists t' : T
+
+	_: t' : T by induction on u:
+		case t-true:	QED by case analysis on e
+		case t-false:	QED by case analysis on e
+		case t-zero:	QED by case analysis on e
+
+		case rule
+			t1 : Int
+			------------
+			iszero t1 : Bool
+		is
+			case analysis on e:
+				case rule
+					-----------------
+					iszero 0 -> true
+				is
+					QED by t-true
+				end case
+
+				case rule
+					t-iszerosucc
+				is
+					QED by t-false
+				end case
+
+				case rule
+					t1 -> t1'
+					---------
+					iszero t1 -> iszero t1'
+				is
+					t1' : Int by induction on t1 : Int and t1 -> t1'
+					QED by t-iszero on t1' : Int
+				end case
+		end case
+
+		case rule
+			t1 : Int
+			------------
+			pred t1 : Int
+		is
+			case analysis on e
+				case e-predzero: QED by t-zerp
+				case e-predsucc: QED by lemma numvalue-int
+				

@@ -1,0 +1,13 @@
+java -classpath $CLASSHOME/src/homework13/homework13.jar:../bin Main --file easy.xml --route A E --route E A --file nasty.xml --route A Z --file maze.xml --route start end
+ 
+Graph({A,B,D,...},{A-east->B,A-south->D,B-west->A,...})
+A-east->B-south->C-west->D-south->E
+A-south->D-south->E
+E-north->D-north->A
+E-north->D-north->A
+Graph({B,A,Z},{A-south->B})
+No Path
+No Path
+Graph({start,z,m,...},{start-west->z,start-north->m,z-north->g,...})
+start-west->z-north->g-north->s-west->d-west->a-west->h-north->x-north->b-west->n-south->o-south->c-west->l-west->t-west->i-north->u-west->y-south->p-east->f-north->k-west->w-west->end
+start-west->z-west->j-west->q-north->e-west->k-west->w-west->end

@@ -1,0 +1,6 @@
+<!-- text in circle -->
+<Drawing>
+    <Circle radius='10' center='(100,100)' fill='red'>
+       HERE
+    </Circle>
+</Drawing>

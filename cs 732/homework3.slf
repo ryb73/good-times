@@ -1,0 +1,298 @@
+
+package edu.uwm.cs.cs732;
+
+terminals contradiction true false if then else value
+          V // for big step evaluation: the big downward arrow
+
+syntax
+
+t ::= true 
+  | false
+  | if t then t else t
+
+
+judgment absurd: contradiction
+
+
+judgment equality: t == t
+
+------ eq
+t == t
+
+
+
+
+judgment isavalue: t value
+
+
+--------------- val-true
+true value
+
+---------------- val-false
+false value
+
+
+judgment eval: t -> t
+
+----------------------------- E-IfTrue
+if true then t1 else t2 -> t1
+
+------------------------------ E-IfFalse
+if false then t1 else t2 -> t2
+
+t1 -> t1'
+----------------------------------------------- E-If
+if t1 then t2 else t3 -> if t1' then t2 else t3
+
+
+judgment evals : t ->* t
+
+------- E-Reflexive
+t ->* t
+
+t1 -> t2
+--------- E-Eval
+t1 ->* t2
+
+t1 ->* t2
+t2 ->* t3
+--------- E-Transitive
+t1 ->* t3
+
+
+judgment bigeval: t V t
+
+t value
+------- B-Value
+t V t
+
+t1 V true
+t2 V t2'
+t2' value
+--------------------------- B-IfTrue
+if t1 then t2 else t3 V t2'
+
+t1 V false
+t3 V t3'
+t3' value
+--------------------------- B-IfFalse
+if t1 then t2 else t3 V t3'
+
+lemma multi-step-if:
+	forall e1: t1 ->* t1'
+	forall t2
+	forall t3
+	exists if t1 then t2 else t3 ->* if t1' then t2 else t3 .
+
+	_: if t1 then t2 else t3 ->* if t1' then t2 else t3 by induction on e1:
+		case rule
+			------------ E-Reflexive
+			_: t1 ->* t1
+		is
+			_: if t1 then t2 else t3 ->* if t1' then t2 else t3 by rule E-Reflexive
+		end case
+
+		case rule
+			es1: t1 -> t1'
+			-------------- E-Eval
+			_: t1 ->* t1'
+		is
+			es2: if t1 then t2 else t3 -> if t1' then t2 else t3 by rule E-If on es1
+			_: if t1 then t2 else t3 ->* if t1' then t2 else t3 by rule E-Eval on es2
+		end case
+
+		case rule
+			e1a: t1 ->* t1''
+			e1b: t1'' ->* t1'
+			----------------- E-Transitive
+			_: t1 ->* t1'
+		is
+			i1: if t1 then t2 else t3 ->* if t1'' then t2 else t3 by induction hypothesis on e1a, t2, t3
+			i2: if t1'' then t2 else t3 ->* if t1' then t2 else t3 by induction hypothesis on e1b, t2, t3
+			_: if t1 then t2 else t3 ->* if t1' then t2 else t3 by rule E-Transitive on i1, i2
+		end case
+	end induction
+end lemma
+
+theorem big-to-small-step:
+	forall e1: t V t'
+	exists t ->* t' .
+
+	_: t ->* t' by induction on e1:
+		case rule
+			_: t value
+			---------- B-Value
+			_: t V t
+		is
+			_: t ->* t by rule E-Reflexive
+		end case
+
+		case rule
+			e1a: t1 V true
+			e1b: t2 V t2'
+			e1c: t2' value
+			------------------------------ B-IfTrue
+			_: if t1 then t2 else t3 V t2'
+		is
+			es1: t1 ->* true by induction hypothesis on e1a
+			es2: if t1 then t2 else t3 ->* if true then t2 else t3 by lemma multi-step-if on es1, t2, t3
+			es3: if true then t2 else t3 -> t2 by rule E-IfTrue
+			es4: if true then t2 else t3 ->* t2 by rule E-Eval on es3
+			es5: t2 ->* t2' by induction hypothesis on e1b
+			es6: if true then t2 else t3 ->* t2' by rule E-Transitive on es4, es5
+			_: t ->* t2' by rule E-Transitive on es2, es6
+		end case
+
+		case rule
+			e1a: t1 V false
+			e1b: t3 V t3'
+			e1c: t3' value
+			------------------------------ B-IfFalse
+			_: if t1 then t2 else t3 V t3'
+		is
+			es1: t1 ->* false by induction hypothesis on e1a
+			es2: if t1 then t2 else t3 ->* if false then t2 else t3 by lemma multi-step-if on es1, t2, t3
+			es3: if false then t2 else t3 -> t3 by rule E-IfFalse
+			es4: if false then t2 else t3 ->* t3 by rule E-Eval on es3
+			es5: t3 ->* t3' by induction hypothesis on e1b
+			es6: if false then t2 else t3 ->* t3' by rule E-Transitive on es4, es5
+			_: t ->* t3' by rule E-Transitive on es2, es6
+		end case
+	end induction
+end theorem
+
+lemma single-to-big-step:
+	forall e1: t -> t'
+	forall b1: t' V t''
+	forall v1: t'' value
+	exists t V t'' .
+
+	_: t V t'' by induction on e1:
+		case rule
+			-------------------------------- E-IfTrue
+			_: if true then t' else t3 -> t'
+		is
+			vt: true value by rule val-true
+			es1: true V true by rule B-Value on vt
+			_: t V t'' by rule B-IfTrue on es1, b1, v1
+		end case
+
+		case rule
+			--------------------------------- E-IfFalse
+			_: if false then t1 else t' -> t'
+		is
+			vf: false value by rule val-false
+			es1: false V false by rule B-Value on vf
+			_: t V t'' by rule B-IfFalse on es1, b1, v1
+		end case
+
+		case rule
+			e1a: t1 -> t1'
+			-------------------------------------------------- E-If
+			_: if t1 then t2 else t3 -> if t1' then t2 else t3
+		is
+			_: t V t'' by case analysis on b1:
+				case rule
+					c: t' value
+					----------- B-Value
+					_: t' V t'
+				is
+					_: t V t'' by case analysis on c:
+					end case analysis
+				end case
+
+				case rule
+					b1a: t1' V true
+					b1b: t2 V t''
+					b1c: t'' value
+					------------------------------ B-IfTrue
+					_: if t1' then t2 else t3 V t''
+				is
+					vt: true value by rule val-true
+					es1: t1 V true by induction hypothesis on e1a, b1a, vt
+					_: t V t'' by rule B-IfTrue on es1, b1b, v1
+				end case
+
+				case rule
+					b1a: t1' V false
+					b1b: t3 V t''
+					b1c: t'' value
+					------------------------------ B-IfFalse
+					_: if t1' then t2 else t3 V t''
+				is
+					vf: false value by rule val-false
+					es1: t1 V false by induction hypothesis on e1a, b1a, vf
+					_: t V t'' by rule B-IfFalse on es1, b1b, v1
+				end case
+			end case analysis
+		end case
+	end induction
+end lemma
+
+lemma multi-to-big-step:
+	forall e1: t ->* t'
+	forall b1: t' V t''
+	forall v1: t'' value
+	exists t V t'' .
+
+	_: t V t'' by induction on e1:
+		case rule
+			---------- E-Reflexive
+			_: t ->* t
+		is
+			_: t V t'' by b1
+		end case
+
+		case rule
+			e1a: t -> t'
+			------------ E-Eval
+			_: t ->* t'
+		is
+			_: t V t'' by lemma single-to-big-step on e1a, b1, v1
+		end case
+
+		case rule
+			e1a: t ->* t1
+			e1b: t1 ->* t'
+			-------------- E-Transitive
+			_: t ->* t'
+		is
+			es1: t1 V t'' by induction hypothesis on e1b, b1, v1
+			_: t V t'' by induction hypothesis on e1a, es1, v1
+		end case
+	end induction
+end theorem
+
+theorem small-to-big-step:
+	forall e1: t ->* t'
+	forall v1: t' value
+	exists t V t' .
+
+	_: t V t' by induction on e1:
+		case rule
+			---------- E-Reflexive
+			_: t ->* t
+		is
+			_: t V t by rule B-Value on v1
+		end case
+
+		case rule
+			e1a: t -> t'
+			------------ E-Eval
+			_: t ->* t'
+		is
+			b1: t' V t' by rule B-Value on v1
+			_: t V t' by lemma single-to-big-step on e1a, b1, v1
+		end case
+
+		case rule
+			e1a: t ->* t1
+			e1b: t1 ->* t'
+			-------------- E-Transitive
+			_: t ->* t'
+		is
+			b1: t1 V t' by induction hypothesis on e1b, v1
+			_: t V t' by lemma multi-to-big-step on e1a, b1, v1
+		end case
+	end induction
+end theorem

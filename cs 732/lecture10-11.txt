@@ -1,0 +1,88 @@
+t ::= t t
+	| fn x => t[x]
+	| x
+	| true
+	| false
+	| if t then t else t
+
+T ::= Bool
+	| T -> T
+
+t-true, t-false, t-if : keep
+
+Gamma |- t1 : T2 -> T
+Gamma |- t2 : T2
+--------------------- T-App
+Gamma |- t1 t2 : T
+
+Gamma, x |- T' |- t[x] : T
+------------------------------- T-Abs
+Gamma |- fn x => t[x] : T' -> T
+
+(x : T) e G
+------------- T-Var
+G |- x : T
+
+theorem progress
+	forall d: Gamma |- t : T
+	gamma empty
+	exists t value \/ t -> t'
+
+	_: t value \/ t -> t' by induction on d:
+		case rule T-App
+			d1: G |- t1 : T2 -> T
+			d2: G |- t2 : T2
+		is
+			QED t1 value or t1 -> t1' by induction hypothesis, case analysis:
+				case t1 -> t1'
+					QED by E-App1
+				case t1 value
+					t1 = \x.t1[x]
+					QED t2 value or t2 -> t2' by induction hypothesis, case analysis:
+						case t2 value: QED by E-App2
+						case t2 -> t2': QED by E-AppAbs
+					end case analysis
+				end case
+			end case analysis
+		end case
+
+		case rule T-Abs
+			t = \x.t1[x]
+			d1: G, x : T' |- t1[x] : T1
+		is
+			QED by val-abs
+		end case
+
+		case rule T-Var
+			t = x
+			x : T e /0
+			contradiction
+		end case
+	end induction
+end theorem
+
+lemma subst:
+	forall G, x : T |- t1[x] : T'
+	forall G |- t2 : T2
+	exists G |- t1[t2] : T
+
+theorem preservation
+	forall d: /0 |- t : T
+	forall e: t -> t'
+	exists /0 |- t' : T
+
+	QED by induction on d:
+		case T-App
+			t = t1 t2
+			d1: t1 : T2 -> T
+			d2: t2 : T2
+		is
+			QED by case analysis on e:
+				case E-App1: simple induction
+				case E-App2: simple induction
+				case E-AppAbs
+					t1 = \x.t11[x]
+					t2 value
+					QED by inversion of T-Abs (case analysis on t1):
+						d11: x : T2 |- t11[x] : T
+						

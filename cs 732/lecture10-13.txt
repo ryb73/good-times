@@ -1,0 +1,74 @@
+judgment incontext : t : T in Gamma
+assumes Gamma
+
+----------------------- var
+x : T in (Gamma, x : T)
+
+Gamma |- t1 : T -> T'
+Gamma |- t2 : T
+----------------------- T-App
+Gamma |- t1 t2 : T'
+
+Gamma, x : T |- t[x] : T'
+--------------------------------- T-Abs
+Gamma |- (fn x => t[x]) : T -> T'
+
+t : T in Gamma
+--------------
+Gamma |- t : T
+
+lemma subst:
+	forall d1: G, x : T |- t[x] : T'
+	forall d2: G |- t1 : T
+	exists G |- t[t1] : T' .
+
+	_: G |- t[t1] : T' by induction on d1:
+		case rule T-True
+			G, x:T |- true : Bool
+		is
+			QED
+		end case
+
+		case rule T-False -- analogous
+
+		case rule
+			i2: G, x : T |- t2 : Bool
+			i3: G, x : T |- t3 : T'
+			i4: G, x : T |- t4 : T'
+			-----------------------------------------
+			_:  G, x : T |- if t2 then t3 else t4 : T'
+		is
+			blah blah blah induction
+		end case
+
+		case rule
+			v: t[x] : T' in (G, x : T)
+			------------------------------ T-Var
+			_: G, x : T |- t[x] : T'
+		is
+			_: G |- t[t1] : T' by case analysis on v:
+				case rule
+					---------------------
+					_: x : T in (Gamma, x : T)
+				is
+				end case
+
+				case rule
+					-------------------------------------- var
+					_: x' : T' in (Gamma', x' : T', x : T)
+				is
+					v': x' : T' in (Gamma', x':T') by rule var
+					_: Gamma', x' : T' |- x' : T' by rule T-Var on v'
+				end case
+		end case
+
+		case rule
+			d': G, x:T, x':T2 |- t'[x'][x] : T1
+			-------------------------------------------- T-Abs
+			_: G, x:T |- (fn x' => t'[x'][x]) : T2 -> T1
+		is
+			d: G, x:T, x':T2 |- t'[x'][x] : T1 by exchange on d'
+			d1': G, x':T2 |- t1 : T by weakening on d2
+			d'': G, x' : T2 |- t'[x'][t1] : T1 by induction hypothesis on d, d1'
+			_: G |- (fn x' => t'[x'][t1]) : T2 -> T1 by rule T-Abs on d''
+		end case

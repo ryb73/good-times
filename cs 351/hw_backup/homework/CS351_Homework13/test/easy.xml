@@ -1,0 +1,37 @@
+<!-- CS 351
+     Fall 2006
+     Easy maze: try to get from A to E -->
+
+<World>
+<Ignore>
+  This element should be ignored
+</Ignore>
+
+<Irrelevant reason="also irrelevant"/>
+
+<Room name="A">
+  <Door dir="east" dest="B"/>
+  <Door dir="south" dest="D"/>
+</Room>
+
+<Room name="B">
+  <Door dir="west" dest="A"/>
+  <Door dir="south" dest="C"/>
+</Room>
+
+<Room name="C">
+  <Door dir="west" dest="D"/>
+  <!-- no path back to B -->
+</Room>
+ 
+<Room name="D">
+  <Door dir="north" dest="A"/>
+  <Door dir="east" dest="C"/>
+  <Door dir="south" dest="E"/>
+</Room>
+
+<Room name="E">
+  <Door dir="north" dest="D"/>
+</Room>
+
+</World>

@@ -1,0 +1,48 @@
+theorem constraint-typing-total:
+    forall t assumes Gamma
+    forall n
+    exists Gamma; n |- t : T if C -| n' .
+
+lemma subst-type-unique:
+    forall s1: T {TT} = T'
+    forall s2: T {TT} = T''
+    exists T' == T''.
+
+lemma subst-type-ground :
+    forall s: T {TT} = T'
+    forall g: TT ground
+    exists T' ground .
+
+lemma subst-ground-type-equal:
+    forall g: T ground
+    forall TT
+    exists T{TT} = T.
+
+lemma ground-type-subst-equal:
+    forall s': T {TT} = T'
+    forall g: T ground
+    exists T == T'.
+
+lemma var-type-ground :
+    forall g:Gamma ground
+    forall v: t:T in Gamma
+    exists T ground .
+
+lemma constraint-typing-subst:
+    forall d: Gamma, x:(Var n); n1 |- t[x] : T if C -| n2
+    forall gg: TT ground
+    forall s1: (Var n){TT} = T1
+    forall st: T{TT} = T''
+    forall sc: C{TT} = C''
+    exists Gamma, x:T1; n1 |- t[x] : T' if C' -| n2 and T'{TT} = T'' and C'{TT} = C''.
+
+theorem constraint-typing-sound:
+    forall t assumes Gamma
+    forall d: Gamma; n |- t : T if C -| n'
+    forall gg: TT ground
+    forall sc: C {TT} = C'
+    forall st: T {TT} = T'
+    forall c: C' true
+    forall gc: Gamma ground
+    exists Gamma |- t : T' .
+

@@ -41,3 +41,14 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+.metadata
+.settings
+
+*.o
+*.exe
+*.doc
+*.xls
+*.docx
+*.xlsx
+*.hi

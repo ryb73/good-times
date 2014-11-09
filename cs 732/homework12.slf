@@ -1,0 +1,804 @@
+/* CompSci 732
+ * Fall 2011
+ * Homework #12
+ */
+
+package edu.uwm.cs.cs732;
+
+terminals contradiction unit value S
+          Unit in fn some if true Var $ ground 
+
+
+syntax
+
+n ::= 0 | S n
+
+t ::= unit
+  | fn x => t[x]
+  | x
+  | t t
+  | t,t
+  | t@1
+  | t@2
+
+T ::= 
+    Unit
+  | T -> T
+  | T * T
+  | Var n
+
+TT ::= $
+  | T, TT
+
+C ::= true
+  | T = T
+  | C & C
+
+Gamma ::= *
+      | Gamma, x : T
+
+
+judgment absurd: contradiction
+
+
+judgment typeequality: T == T
+
+------ type-eq
+T == T
+
+
+judgment isvar: t : T in Gamma
+assumes Gamma
+
+----------------------- var
+x : T in (Gamma, x : T)
+
+
+judgment var-free: T ground
+
+------------ G-Unit
+Unit ground
+
+T1 ground
+T2 ground
+-------------- G-Pair
+T1 * T2 ground
+
+T1 ground
+T2 ground
+--------------- G-Arrow
+T1 -> T2 ground
+
+
+judgment var-frees : TT ground
+
+--------- G-None
+$ ground
+
+
+T ground
+TT ground
+------------- G-Some
+(T,TT) ground
+
+
+judgment context-var-free : Gamma ground
+assumes Gamma
+
+Gamma ground
+T ground
+-------------------- G-Context
+(Gamma, x:T) ground
+
+
+judgment type: Gamma |- t : T
+assumes Gamma
+
+-------------------- T-Unit
+Gamma |- unit : Unit
+
+t:T in Gamma
+-------------- T-Var
+Gamma |- t : T
+
+Gamma, x : T1 |- t[x] : T2
+T1 ground
+------------------------------------- T-Abs
+Gamma |- (fn x => t[x]) : T1 -> T2
+
+Gamma |- t1 : T2 -> T3
+Gamma |- t2 : T2
+----------------------- T-App
+Gamma |- t1 t2 : T3
+
+Gamma |- t1 : T1
+Gamma |- t2 : T2
+-------------------------- T-Pair
+Gamma |- (t1,t2) : T1 * T2
+
+Gamma |- t : T1 * T2
+--------------------- T-Proj1
+Gamma |- t@1 : T1
+
+Gamma |- t : T1 * T2
+--------------------- T-Proj2
+Gamma |- t@2 : T2
+
+
+
+judgment constrained-typing: Gamma; n |- t : T if C -| n
+assumes Gamma
+
+------------------------------------- CT-Unit
+Gamma; n |- unit : Unit if true -| n
+
+t : T in Gamma
+------------------------------ CT-Var
+Gamma; n |- t : T if true -| n
+
+Gamma, x : Var n; S n |- t[x] : T2 if C -| n'
+--------------------------------------------------- CT-Abs
+Gamma; n |- (fn x => t[x]) : (Var n) -> T2 if C -| n'
+
+Gamma; S n |- t1 : T1 if C1 -| n1
+Gamma; n1 |- t2 : T2 if C2 -| n2
+------------------------------------------------------------------------ CT-App
+Gamma; n |- t1 t2 : Var n if (C1 & C2) & (T1 = T2 -> Var n) -| n2
+
+Gamma; n0 |- t1 : T1 if C1 -| n1
+Gamma; n1 |- t2 : T2 if C2 -| n2
+----------------------------------------------- CT-Pair
+Gamma; n0 |- (t1,t2) : T1 * T2 if C1 & C2 -| n2
+
+Gamma; S S n |- t : T if C -| n1
+---------------------------------------------------------------- CT-Proj1
+Gamma; n |- t@1 : (Var n) if C & (T = (Var n) * Var (S n)) -| n1
+
+Gamma; S S n |- t : T if C -| n1
+------------------------------------------------------------------ CT-Proj2
+Gamma; n |- t@2 : (Var S n) if C & (T = (Var n) * Var (S n)) -| n1
+
+
+
+judgment subst-type: T {TT} = T
+
+----------------- S-VarZ
+Var 0 {T, TT} = T
+
+Var n {TT} = T'
+-------------------- S-VarS
+Var S n {T,TT} = T'
+
+---------------- S-Unit
+Unit {TT} = Unit
+
+T1 {TT} = T1'
+T2 {TT} = T2'
+------------------------ S-Pair
+(T1*T2) {TT} = (T1'*T2')
+
+T1 {TT} = T1'
+T2 {TT} = T2'
+-------------------------- S-Arrow
+(T1->T2) {TT} = (T1'->T2')
+
+
+
+judgment subst-const: C {TT} = C
+
+
+---------------- S-True
+true {TT} = true
+
+T1 {TT} = T1'
+T2 {TT} = T2'
+------------------------ S-Equal
+(T1=T2) {TT} = (T1'=T2')
+
+C1 {TT} = C1'
+C2 {TT} = C2'
+------------------------ S-And
+(C1&C2) {TT} = (C1'&C2')
+
+
+
+judgment contraints-satisfied: C true
+
+--------- CS-True
+true true
+
+---------- CS-Equal
+T = T true
+
+C1 true
+C2 true
+------------ CS-Both
+C1 & C2 true
+
+
+//// Theorems
+
+
+theorem constraint-typing-total:
+    forall t assumes Gamma
+    forall n
+    exists Gamma; n |- t : T if C -| n' .
+    _: Gamma; n |- t : T if C -| n' by induction on t:
+		case x assumes Gamma',x:T is
+			v: x:T in Gamma',x:T by rule var
+			_: Gamma',x:T; n |- x : T if true -| n by rule CT-Var on v
+		end case
+
+        case fn x => t2[x] is
+            dt2: Gamma, x:Var n; S n |- t2[x] : T2 if C1 -| n'
+                    by induction hypothesis on (t2[x] assumes Gamma, x:T1),(S n)
+            _: Gamma; n |- fn x => t2[x] : T1 -> T2 if C1 -| n'
+                    by rule CT-Abs on dt2
+        end case
+
+		case t1 t2 is
+			d1: Gamma; S n |- t1 : T1 if C1 -| n1 by induction hypothesis on t1, (S n)
+			d2: Gamma; n1 |- t2 : T2 if C2 -| n2 by induction hypothesis on t2, n1
+			proof by rule CT-App on d1, d2
+		end case
+
+		case t1,t2 is
+			d1: Gamma; n |- t1 : T1 if C1 -| n1 by induction hypothesis on t1, n
+			d2: Gamma; n1 |- t2 : T2 if C2 -| n2 by induction hypothesis on t2, n1
+			proof by rule CT-Pair on d1, d2
+		end case
+
+		case t1@1 is
+			d1: Gamma; S S n |- t1 : T1 if C1 -| n1 by induction hypothesis on t1, (S S n)
+			proof by rule CT-Proj1 on d1
+		end case
+
+		case t1@2 is
+			d1: Gamma; S S n |- t1 : T1 if C1 -| n1 by induction hypothesis on t1, (S S n)
+			proof by rule CT-Proj2 on d1
+		end case
+
+		case unit is
+			proof by rule CT-Unit
+		end case
+    end induction
+end theorem
+
+
+// helper lemmas for 22.3.5
+
+lemma subst-type-unique:
+    forall s1: T {TT} = T'
+    forall s2: T {TT} = T''
+    exists T' == T''.
+    _: T' == T'' by induction on s1:
+	case rule
+	    ----------------------- S-VarZ
+	    _: Var 0 {T', TT'} = T'
+	is
+	    _: T' == T'' by case analysis on s2:
+		case rule
+		    ----------------------- S-VarZ
+		    _: Var 0 {T', TT'} = T'
+		is
+		    _: T' == T' by rule type-eq
+		end case
+	    end case analysis
+	end case
+
+	case rule	   
+	    s1': Var n {TT'} = T'
+	    ------------------------- S-VarS
+	    _: Var S n {T1,TT'} = T'
+	is
+	    _: T' == T'' by case analysis on s2:
+		case rule
+		    s2': Var n {TT'} = T''
+		    ------------------------- S-VarS
+		    _: Var S n {T1,TT'} = T''
+		is
+		    _: T' == T'' by induction hypothesis on s1',s2'
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    ------------------- S-Unit
+	    _: Unit {TT} = Unit
+	is
+	    _: Unit == T'' by case analysis on s2:
+		case rule
+		    ------------------- S-Unit
+		    _: Unit {TT} = Unit
+		is
+		    _: Unit == Unit by rule type-eq
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    s11: T1 {TT} = T1'
+	    s12: T2 {TT} = T2'
+	    ---------------------------- S-Pair
+	    _: (T1*T2) {TT} = (T1'*T2')
+	is
+	    _: T1'*T2' == T'' by case analysis on s2:
+		case rule
+		    s21: T1 {TT} = T1''
+		    s22: T2 {TT} = T2''
+		    ----------------------------- S-Pair
+		    _: (T1*T2) {TT} = (T1''*T2'')
+		is
+		    e1: T1' == T1'' by induction hypothesis on s11,s21
+		    e2: T2' == T2'' by induction hypothesis on s12,s22
+		    _: T1'*T2' == T1''*T2'' by case analysis on e1:
+			case rule
+			    ------------- type-eq
+			    _: T1' == T1'
+			is
+			    _: T1'*T2' == T1'*T2'' by case analysis on e2:
+				case rule
+				    ------------- type-eq
+				    _: T2' == T2'
+				is
+				    _: T1'*T2' == T1'*T2' by rule type-eq
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+
+	case rule
+	    s11: T1 {TT} = T1'
+	    s12: T2 {TT} = T2'
+	    ---------------------------- S-Arrow
+	    _: (T1->T2) {TT} = (T1'->T2')
+	is
+	    _: T1'->T2' == T'' by case analysis on s2:
+		case rule
+		    s21: T1 {TT} = T1''
+		    s22: T2 {TT} = T2''
+		    ----------------------------- S-Arrow
+		    _: (T1->T2) {TT} = (T1''->T2'')
+		is
+		    e1: T1' == T1'' by induction hypothesis on s11,s21
+		    e2: T2' == T2'' by induction hypothesis on s12,s22
+		    _: T1'->T2' == T1''->T2'' by case analysis on e1:
+			case rule
+			    ------------- type-eq
+			    _: T1' == T1'
+			is
+			    _: T1'->T2' == T1'->T2'' by case analysis on e2:
+				case rule
+				    ------------- type-eq
+				    _: T2' == T2'
+				is
+				    _: T1'->T2' == T1'->T2' by rule type-eq
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+    end induction
+end lemma
+
+lemma subst-type-ground :
+    forall s: T {TT} = T'
+    forall g: TT ground
+    exists T' ground .
+    _: T' ground by induction on s:
+	case rule 
+	    ---------------------- S-VarZ
+	    _: Var 0 {T',TT'} = T'
+	is
+	    _: T' ground by inversion of G-Some on g
+	end case
+
+	case rule
+	    s1: Var n {TT1} = T'
+	    ------------------------ S-VarS
+	    _: Var S n {T1,TT1} = T'
+	is
+	    g1: TT1 ground by inversion of G-Some on g
+	    _: T' ground by induction hypothesis on s1,g1
+	end case
+
+	case rule
+	    ------------------- S-Unit
+	    _: Unit {TT} = Unit
+	is
+	    _: Unit ground by rule G-Unit
+	end case
+
+	case rule
+	    s1: T1 {TT} = T1'
+	    s2: T2 {TT} = T2'
+	    --------------------------- S-Pair
+	    _: (T1*T2) {TT} = (T1'*T2')
+	is
+	    g1: T1' ground by induction hypothesis on s1,g
+	    g2: T2' ground by induction hypothesis on s2,g
+	    _: T1'*T2' ground by rule G-Pair on g1,g2
+	end case
+	    
+	case rule
+	    s1: T1 {TT} = T1'
+	    s2: T2 {TT} = T2'
+	    ---------------------------------- S-Arrow
+	    _: (T1 -> T2) {TT} = (T1' -> T2')
+	is
+	    g1: T1' ground by induction hypothesis on s1,g
+	    g2: T2' ground by induction hypothesis on s2,g
+	    _: T1' -> T2' ground by rule G-Arrow on g1,g2
+	end case	    
+    end induction
+end lemma
+
+lemma subst-ground-type-equal:
+    forall g: T ground
+    forall TT
+    exists T{TT} = T.
+    _: T{TT} = T by induction on g:
+	case rule
+	    --------------- G-Unit
+	    _: Unit ground
+	is
+	    _: Unit{TT} = Unit by rule S-Unit
+	end case
+
+	case rule
+	    g1: T1 ground
+	    g2: T2 ground
+	    ----------------- G-Pair
+	    _: T1 * T2 ground
+	is
+	    s1: T1{TT} = T1 by induction hypothesis on g1,TT
+	    s2: T2{TT} = T2 by induction hypothesis on g2,TT
+	    _: (T1*T2){TT} = (T1*T2) by rule S-Pair on s1,s2
+	end case
+
+	case rule
+	    g1: T1 ground
+	    g2: T2 ground
+	    ----------------- G-Arrow
+	    _: T1 -> T2 ground
+	is
+	    s1: T1{TT} = T1 by induction hypothesis on g1,TT
+	    s2: T2{TT} = T2 by induction hypothesis on g2,TT
+	    _: (T1->T2){TT} = (T1->T2) by rule S-Arrow on s1,s2
+	end case
+    end induction
+end lemma
+
+lemma ground-type-subst-equal:
+    forall s': T {TT} = T'
+    forall g: T ground
+    exists T == T'.
+    s : T {TT} = T by lemma subst-ground-type-equal on g,TT
+    _: T == T' by lemma subst-type-unique on s,s'
+end lemma
+
+
+lemma var-type-ground :
+    forall g:Gamma ground
+    forall v: t:T in Gamma
+    exists T ground .
+    _: T ground by case analysis on v:
+	case rule
+	    ---------------------- var
+	    _: x:T in (Gamma',x:T)
+	is
+	    _: T ground by case analysis on g:
+		case rule
+		    _: Gamma' ground
+		    g': T ground
+		    ---------------------- G-Context
+		    _: (Gamma',x:T) ground
+		is
+		    _: T ground by g'
+		end case
+	    end case analysis
+	end case
+    end case analysis
+end lemma
+
+
+lemma constraint-typing-subst:
+    forall d: Gamma, x:(Var n); n1 |- t[x] : T if C -| n2
+    forall gg: TT ground
+    forall s1: (Var n){TT} = T1
+    forall st: T{TT} = T''
+    forall sc: C{TT} = C''
+    exists Gamma, x:T1; n1 |- t[x] : T' if C' -| n2 and T'{TT} = T'' and C'{TT} = C''.
+    proof by unproved
+    // EXTRA: Difficult
+end lemma
+
+
+// Theorem 22.3.5
+theorem constraint-typing-sound:
+    forall t assumes Gamma
+    forall d: Gamma; n |- t : T if C -| n'
+    forall gg: TT ground
+    forall sc: C {TT} = C'
+    forall st: T {TT} = T'
+    forall c: C' true
+    forall gc: Gamma ground
+    exists Gamma |- t : T' .
+    // Unfortunately, we have to do induction on t, rather than on d
+    // because we need to use constraint-typing-subst in the CT-Abs case (see below).
+    // As a side-effect, we need to handle CT-Var in EVERY case
+    _: Gamma |- t : T' by induction on t:
+	case x assumes Gamma',x:T1 is
+	    _: Gamma',x:T1 |- x : T' by case analysis on d:
+		case rule
+		    v: x : T in (Gamma',x:T1)
+		    -------------------------------------- CT-Var
+		    _: Gamma',x:T1; n |- x : T if true -| n
+		is
+		    g: T ground by lemma var-type-ground on gc,v
+		    e: T == T' by lemma ground-type-subst-equal on st,g
+		    _: Gamma',x:T1 |- x : T' by case analysis on e:
+			case rule
+			    --------- type-eq
+			    _: T == T
+			is
+			    _: Gamma',x:T1 |- x : T by case analysis on v:
+				case rule
+				    ---------------------- var
+				    _: x:T in (Gamma',x:T)
+				is
+				    _: Gamma', x:T |- x : T by rule T-Var on v
+				end case
+			    end case analysis
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+	    
+	case fn x => t1[x] is	
+	    _: Gamma |- t : T' by case analysis on d:
+		// NB: Every case analysis on d will have to include a CT-Var case (sigh)
+		case rule
+		    v: t : T in Gamma
+		    ---------------------------------- CT-Var
+		    _: Gamma; n |- t : T if true -| n
+		is
+		    _: Gamma |- t : T' by case analysis on v: end case analysis
+		end case
+		case rule
+		    d1: Gamma, x:(Var n); S n |- t1[x] : T2 if C -| n'
+		    ---------------------------------------------------------- CT-Abs
+		    _: Gamma; n |- (fn x => t1[x]) : (Var n) -> T2 if C -| n'
+		is
+		    sv: (Var n){TT} = T1 and
+		    st2: T2{TT} = T2'' by inversion of S-Arrow on st
+		    gt1: T1 ground by lemma subst-type-ground on sv,gg
+		    d1': Gamma, x:T1; S n |- t1[x] : T2' if C1' -| n' and
+		    st2': T2'{TT}=T2'' and
+		    sc1': C1'{TT}=C' by lemma constraint-typing-subst on d1, gg, sv, st2, sc
+		    gc1: Gamma, x:T1 ground by rule G-Context on gc,gt1
+		    d1'': Gamma, x:T1 |- t1[x] : T2'' 
+			    by induction hypothesis on (t1[x] assumes Gamma,x:T1), d1', gg, sc1', st2', c, gc1
+		    proof by rule T-Abs on d1'', gt1
+		end case
+	    end case analysis
+	end case
+
+	case t1 t2 is
+		_: Gamma |- t1 t2 : T' by case analysis on d:
+			case rule
+				v: t : T in Gamma
+				---------------------------------- CT-Var
+				_: Gamma; n |- t : T if true -| n
+			is
+				_: Gamma |- t : T' by case analysis on v: end case analysis
+			end case
+
+			case rule
+				cd1: Gamma; S n |- t1 : T1 if C1 -| n1
+				cd2: Gamma; n1 |- t2 : T2 if C2 -| n'
+				-------------------------------------------------------------- CT-App
+				_: Gamma; n |- t1 t2 : Var n if (C1 & C2) & (T1 = T2 -> Var n) -| n'
+			is
+				sc12: (C1&C2) {TT} = C12 and
+				scT1: (T1 = T2 -> Var n) {TT} = C'' by inversion of S-And on sc
+				sc1: C1 {TT} = C1' and
+				sc2: C2 {TT} = C2' by inversion of S-And on sc12
+
+				st1: T1 {TT} = T1' and
+				st2': (T2 -> Var n) {TT} = T2'' by inversion of S-Equal on scT1
+				st2: T2 {TT} = T2' and
+				_: Var n {TT} = T' by inversion of S-Arrow on st2'
+
+				c12': (C1'&C2') true and
+				cT1: (T1' = T2' -> T') true by inversion of CS-Both on c
+				c1': C1' true and
+				c2': C2' true by inversion of CS-Both on c12'
+
+				proof by case analysis on cT1:
+					case rule
+						----------------- CS-Equal
+						_: T1' = T1' true
+					is
+						d1: Gamma |- t1 : T2' -> T' by
+							induction hypothesis on t1, cd1, gg, sc1, st1, c1', gc
+						d2: Gamma |- t2 : T2' by
+							induction hypothesis on t2, cd2, gg, sc2, st2, c2', gc
+						proof by rule T-App on d1, d2
+					end case
+				end case analysis
+			end case
+		end case analysis
+	end case
+
+	case (t1,t2) is
+		_: Gamma |- (t1,t2) : T' by case analysis on d:
+			case rule
+				v: t : T in Gamma
+				---------------------------------- CT-Var
+				_: Gamma; n |- t : T if true -| n
+			is
+				_: Gamma |- t : T' by case analysis on v: end case analysis
+			end case
+
+			case rule
+				cd1: Gamma; n  |- t1 : T1 if C1 -| n1
+				cd2: Gamma; n1 |- t2 : T2 if C2 -| n2
+				-------------------------------------------------- CT-Pair
+				_: Gamma; n |- (t1,t2) : T1 * T2 if C1 & C2 -| n2
+			is
+				st1: T1 {TT} = T1' and
+				st2: T2 {TT} = T2' by inversion of S-Pair on st
+
+				sc1: C1 {TT} = C1' and
+				sc2: C2 {TT} = C2' by inversion of S-And on sc
+
+				c1': C1' true and
+				c2': C2' true by inversion of CS-Both on c
+
+				d1: Gamma |- t1 : T1' by
+					induction hypothesis on t1, cd1, gg, sc1, st1, c1', gc
+
+				d2: Gamma |- t2 : T2' by
+					induction hypothesis on t2, cd2, gg, sc2, st2, c2', gc
+
+				proof by rule T-Pair on d1, d2
+			end case
+		end case analysis
+	end case
+
+	case t1@1 is
+		proof by case analysis on d:
+			case rule
+				v: t : T in Gamma
+				---------------------------------- CT-Var
+				_: Gamma; n |- t : T if true -| n
+			is
+				_: Gamma |- t : T' by case analysis on v: end case analysis
+			end case
+
+			case rule
+				cd1: Gamma; S S n |- t1 : T1 if C1 -| n1
+				------------------------------------------------------------ CT-Proj1
+				_: Gamma; n |- t1@1 : (Var n) if C1 & (T1 = (Var n) * Var (S n)) -| n1
+			is
+				sc1: C1 {TT} = C1' and
+				sc2: (T1 = (Var n) * Var (S n)) {TT} = C2' by inversion of S-And on sc
+
+				st1: T1 {TT} = T1'' and
+				st2: ((Var n) * Var (S n)) {TT} = T2' by inversion of S-Equal on sc2
+				stV1: Var n {TT} = T'' and
+				stV2: Var (S n) {TT} = T2'' by inversion of S-Pair on st2
+
+				c1': C1' true and
+				c2': C2' true by inversion of CS-Both on c
+
+				eq: T' == T'' by lemma subst-type-unique on st, stV1
+				proof by case analysis on eq:
+					case rule
+						------------- type-eq
+						_: T'' == T''
+					is
+						proof by case analysis on c2':
+							case rule
+								------------------------ CS-Equal
+								_: T1'' = T1'' true
+							is
+								d1: Gamma |- t1 : T1'' by
+									induction hypothesis on t1, cd1, gg, sc1, st1, c1', gc
+								proof by rule T-Proj1 on d1
+							end case
+						end case analysis
+					end case
+				end case analysis
+			end case
+		end case analysis
+	end case
+
+	case t1@2 is
+		proof by case analysis on d:
+			case rule
+				v: t : T in Gamma
+				---------------------------------- CT-Var
+				_: Gamma; n |- t : T if true -| n
+			is
+				_: Gamma |- t : T' by case analysis on v: end case analysis
+			end case
+
+			case rule
+				cd1: Gamma; S S n |- t1 : T1 if C1 -| n1
+				------------------------------------------------------------ CT-Proj2
+				_: Gamma; n |- t1@2 : (Var S n) if C1 & (T1 = (Var n) * Var (S n)) -| n1
+			is
+				sc1: C1 {TT} = C1' and
+				sc2: (T1 = (Var n) * Var (S n)) {TT} = C2' by inversion of S-And on sc
+
+				st1: T1 {TT} = T1'' and
+				st2: ((Var n) * Var (S n)) {TT} = T2' by inversion of S-Equal on sc2
+				stV1: Var n {TT} = T'' and
+				stV2: Var (S n) {TT} = T2'' by inversion of S-Pair on st2
+
+				c1': C1' true and
+				c2': C2' true by inversion of CS-Both on c
+
+				eq: T' == T2'' by lemma subst-type-unique on st, stV2
+				proof by case analysis on eq:
+					case rule
+						------------- type-eq
+						_: T2'' == T2''
+					is
+						proof by case analysis on c2':
+							case rule
+								------------------------ CS-Equal
+								_: T1'' = T1'' true
+							is
+								d1: Gamma |- t1 : T1'' by
+									induction hypothesis on t1, cd1, gg, sc1, st1, c1', gc
+								proof by rule T-Proj2 on d1
+							end case
+						end case analysis
+					end case
+				end case analysis
+			end case
+		end case analysis
+	end case
+
+	case unit is
+		_: Gamma |- unit : T' by case analysis on d:
+			case rule
+				v: t : T in Gamma
+				---------------------------------- CT-Var
+				_: Gamma; n |- t : T if true -| n
+			is
+				_: Gamma |- t : T' by case analysis on v: end case analysis
+			end case
+
+			case rule
+				------------------------------------- CT-Unit
+				_: Gamma; n |- unit : Unit if true -| n
+			is
+				_: Gamma |- unit : T' by case analysis on st:
+					case rule
+						------------------- S-Unit
+						_: Unit {TT} = Unit
+					is
+						proof by rule T-Unit
+					end case
+				end case analysis
+			end case
+		end case analysis
+	end case
+    end induction
+end theorem
+
+
+// Theorem 22.3.7
+// requires us to define what variables are in scope etc which
+// starts getting very complex.  So this part is omitted.
+// The solution has an incomplete sketch.

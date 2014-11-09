@@ -1,0 +1,42 @@
+M{l} = T
+----------------- T-Loc
+G; M |- l : Ref T
+
+
+
+Progress:
+
+if		* ; M |- t : T
+		mu : M
+then	t | mu -> t' | mu OR t value
+
+*, M |- FORALL l in Dom(M)  mu(l) : M(l)
+----------------------------------------
+mu : M
+
+Preservation:
+
+forall dt: * ; M |- t : T
+forall e: t | mu -> t' | mu'
+forall dm: mu : M
+exists * ; M' |- t' : T /\ mu' : M /\ M' >= M
+
+QED by induction on dt:
+	case T-App
+		d1: *; M |- t1 : T' -> T
+		d2: *; M |- t2 : T'
+		--------------------
+		*; M |- t1 t2 : T
+
+		QED by case analysis on e:
+			case E-App1
+				e' t1 | mu -> t1' | mu'
+				----------------------------
+				(t1 t2) | mu -> (t1' t2) mu'
+
+				d1': *; M |- t1' : T' -> T		by induction
+				dm': mu' : M'					by induction
+
+
+	case T-Assign,E-assign
+		

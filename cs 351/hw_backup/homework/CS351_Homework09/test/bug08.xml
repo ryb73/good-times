@@ -1,0 +1,4 @@
+<!-- extraneous attribute for Rectangle -->
+<Drawing>
+   <Rectangle fill='gray' selected='true' width='45' height='10' center='(0,0)'/>
+ </Drawing>

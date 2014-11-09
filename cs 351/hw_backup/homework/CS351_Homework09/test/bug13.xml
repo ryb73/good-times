@@ -1,0 +1,4 @@
+<!-- Wrong outer element -->
+<Group>
+   <Rectangle height='10' width='10' fill='red' center='(100,100)'/>
+</Group>

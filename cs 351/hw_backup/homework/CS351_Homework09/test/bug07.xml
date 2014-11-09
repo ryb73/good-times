@@ -1,0 +1,4 @@
+<!-- wrong attribute for Circle -->
+<Drawing>
+   <Circle fill='blue' width='45' radius='10' center='(300,700)'/>
+ </Drawing>

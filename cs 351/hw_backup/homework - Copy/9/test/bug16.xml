@@ -1,0 +1,4 @@
+<!-- bad width -->
+<Drawing>
+   <Rectangle width='0' height='10' center='(100,150)' fill='black'/>
+ </Drawing>

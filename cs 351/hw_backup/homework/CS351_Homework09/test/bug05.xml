@@ -1,0 +1,7 @@
+<!-- Missing center for circle -->
+<Drawing>
+   <Group>
+       <Circle radius='30' outline='yellow'>
+       </Circle>
+    </Group>
+</Drawing>

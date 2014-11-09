@@ -1,0 +1,103 @@
+/*
+	CS 732
+	Homework #2 part 2
+	Ryan Biwer
+*/
+
+package edu.uwm.cs732;
+
+terminals contradiction s
+
+syntax
+
+n ::= 0
+  | s n
+
+
+judgment gt: n > n
+
+------- gt-one
+s n > n
+
+n1 > n2
+--------- gt-more
+s n1 > n2
+
+judgment contra: contradiction
+
+theorem sn-gt-zero :
+	forall n1
+	exists s n1 > 0 .
+
+	_ : s n1 > 0 by induction on n1 :
+		case 0 is
+			_ : s n1 > n1 by rule gt-one
+		end case
+		case s n2 is
+			g: s n2 > 0 by induction hypothesis on n2
+			_: s s n2 > 0 by rule gt-more on g
+		end case
+	end induction
+end theorem
+
+theorem gt-transitive:
+	forall p1: n1 > n2
+	forall p2: n2 > n3
+	exists n1 > n3 .
+
+	_: n1 > n3 by induction on p1 :
+		case rule
+			-------------- gt-one
+			_: s n1' > n1'
+		is
+			_: s n1' > n3 by rule gt-more on p2
+		end case
+		case rule
+			p3: n1' > n2
+			-------------- gt-more
+			_: s n1' > n2
+		is
+			g: n1' > n3 by induction hypothesis on p3, p2
+			_: s n1' > n3 by rule gt-more on g
+		end case
+	end induction
+end theorem
+
+theorem gts-implies-gt :
+	forall p1: s n1 > s n2
+	exists n1 > n2 .
+
+	_: n1 > n2 by case analysis on p1 :
+		case rule
+			-------------- gt-one
+			_: s n1 > n1
+		is
+			_: s n2 > n2 by rule gt-one
+		end case
+		case rule
+			p2: n1 > n2'
+			-------------- gt-more
+			_: s n1 > n2'
+		is
+			p3: s n2 > n2 by rule gt-one
+			_: n1 > n2 by theorem gt-transitive on p2, p3
+		end case
+	end case analysis
+end theorem
+
+theorem n-not-gt-n :
+	forall n
+	forall p: n > n
+	exists contradiction .
+
+	_: contradiction by induction on n :
+		case 0 is
+			_: contradiction by case analysis on p :
+			end case analysis
+		end case
+		case s n2 is
+			p2: n2 > n2 by theorem gts-implies-gt on p
+			_: contradiction by induction hypothesis on n2, p2
+		end case
+	end induction
+end theorem

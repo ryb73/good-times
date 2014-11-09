@@ -1,0 +1,7 @@
+<!-- multiple things -->
+<Drawing>
+    <Circle radius='40' center='(100,100)' fill='green'/>
+</Drawing>
+<Drawing>
+    <Rectangle width='80' height='80' center='(100,100)' fill='blue'/>
+</Drawing>

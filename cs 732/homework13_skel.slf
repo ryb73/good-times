@@ -1,0 +1,30 @@
+
+lemma type-bound:
+    forall T assumes Gamma
+    exists Gamma |- T.
+    _: Gamma |- T by induction on T:
+	case X assumes Gamma', X is
+	    _: Gamma',X |- X by rule B-Var
+	end case
+	case T1 -> T2 is
+	    b1: Gamma |- T1 by induction hypothesis on T1
+	    b2: Gamma |- T2 by induction hypothesis on T2
+	    _: Gamma |- T1 -> T2 by rule B-Arrow on b1,b2
+	end case
+	case All X => T1[X] is
+	    b1: Gamma,X |- T1[X] 
+		    by induction hypothesis on (T1[X] assumes Gamma,X)
+	    _: Gamma |- All X => T1[X] by rule B-All on b1
+	end case
+    end induction
+end lemma
+
+
+lemma type-subst:
+    forall d: Gamma, X |- t[X] : T1[X]
+    forall T2 assumes Gamma
+    exists Gamma |- t[T2] : T1[T2].
+    b : Gamma |- T2 by lemma type-bound on T2
+    _: Gamma |- t[T2] : T1[T2] by substitution on d,b
+end lemma
+

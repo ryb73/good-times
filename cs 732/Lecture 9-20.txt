@@ -1,0 +1,112 @@
+t ::= v
+	| if t then t else t
+
+v ::= true
+	| false
+
+judgment eval: t -> t
+
+----------------------------- e-iftrue
+if true then t1 else t2 -> t1
+
+----------------------------- e-iffalse
+if true then t1 else t2 -> t2
+
+t0 -> t0'
+----------------------------------------------- e-if
+if t0 then t1 else t2 -> if t0' then t1 else t2
+
+judgment rteval: t ->* t
+
+------- rt-refl
+t ->* t
+
+t1 ->* t2
+t2 ->* t3
+--------- rt-trans
+t1 ->* t3
+
+t -> t’
+-------- rt-eval
+t ->* t’
+
+judgment isvalue: t value
+
+---------- val-true
+true value
+
+----------- val-false
+false value
+
+theorem
+	forall a: t value
+	forall b: t -> t'
+	exists contradiction
+	
+	proof by case analysis on a
+		case true value
+			case analysis on b
+			end case analysis
+		case false value
+			case analysis on b
+			end case analysis
+	end case analysis
+end theorem
+
+theorem
+	forall e1: t -> t'
+	forall e2: t -> t''
+	exists t' = t''
+
+	proof by induction on e1
+		case e-iftrue
+			t == if true then t' else t2
+			case analysis on e2
+				case e-iftrue
+					t' == t'
+				case e-if
+					e: true -> t0'
+					t' == t'' by case analysis on e
+			end case nalysis
+		case e-iffalse
+			analogous
+		case e-if
+			t -> if t0 then t1 else t2
+			t' -> if t0' then t1 else t2
+			e1': t0 -> t0'
+			case analysis on e2:
+				case e-iftrue
+				case e-iffalse
+				case e-if
+					t'' -> if t0'' then t1 else t2
+					e2': t0 -> t0''
+					t0' = t0'' by induction hypothesis on e1', e2'
+					
+					
+					
+judgment normal: t -/>
+
+-------- normal-true
+true -/>
+
+--------- normal-false
+false -/>
+
+
+
+judgment t ->* t' /\ t -/>
+
+theorem termination
+	forall t
+	exists t->* u && u -/>
+
+	proof by induction on t
+		case true
+			QED by rt-refl and normal-true
+		case false
+			analogous
+		case if t0 then t1 else t2
+			inductive hypothesis on t0
+			case analysis on u0
+				case true
+					induction hypothesis on t1

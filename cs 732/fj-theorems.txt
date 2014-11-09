@@ -1,0 +1,309 @@
+lemma positive-gt-zero :
+    forall n exists (s n) > 0 .
+
+lemma succ-preserves-gt :
+    forall d: n1 > n2 exists (s n1) > (s n2).
+
+lemma succ-cancels-gt :
+    forall d: (s n1) > (s n2) exists n1 > n2.
+
+theorem gt-anti-reflexive : 
+    forall n forall d: n > n exists contradiction.
+
+theorem gt-transitive :
+    forall d12: n1 > n2 forall d23: n2 > n3 exists n1 > n3.
+
+theorem ne-anti-reflexive:
+    forall ne: n <> n
+    exists contradiction .
+
+theorem ne-symmetric :
+    forall d: n1 <> n2
+    exists n2 <> n1 .
+
+lemma succ-preserves-ne:
+    forall d: n1 <> n2
+    exists s n1 <> s n2 .
+
+lemma ge-gt-contradiction :
+  forall ge: (s n1) > n2
+  forall gt: n2 > n1
+  exists contradiction .
+
+lemma compare-total:
+    forall n1
+    forall n2
+    exists n1 ? n2 .
+
+lemma backward-extends:
+    forall e: CT1 |- C extends C' 
+    forall i: CT0 :> CT1
+    exists CT0 |- C extends C'.
+
+lemma this-binding-irrelevant :
+    forall mt: Gamma, x:C1 |- FB[x] : { CC }
+    forall C2
+    exists Gamma, x:C2 |- FB[x] : { CC }.
+
+lemma this-binding-subst:
+    forall mt: Gamma, x:C1 |- FB[x] : { CC }
+    forall t
+    exists Gamma |- FB[t] : { CC }.
+
+lemma field-append-preserves-undefined:
+    forall fa: ff1 # ff2 = ff3
+    forall u1: ff1 @ f undefined
+    forall u2: ff2 @ f undefined
+    exists ff3 @ f undefined .
+
+lemma field-left-append-unique:
+    forall fa: ff1 # ff2 = ff3
+    forall fa': ff1' # ff2 = ff3'
+    forall e1: ff1 == ff1'
+    exists ff3 == ff3' .
+
+lemma field-lookup-undefined-contradiction:
+    forall cfl: CT0; CT |- class C { ff }
+    forall cfu: CT @ C undefined
+    exists contradiction .
+
+lemma field-lookup-unique:
+    forall o0: CT0 |- CT0 ok
+    forall o: CT0 |- CT ok
+    forall cfl:  CT0; CT |- class C { ff }
+    forall cflp: CT0; CT |- class C { ff' }
+    exists ff == ff' .
+
+lemma inherited-field-unchanged :
+    forall fs: ff1 @ f : C
+    forall fa: ff1 # ff2 = ff3
+    exists ff3 @ f : C .
+
+lemma class-field-extends-lookup:
+    forall o0: CT0 |- CT0 ok
+    forall o:  CT0 |- CT ok
+    forall fl: CT0; CT0 |- class C1 { ff1 }
+    forall fs: ff1 @ f : C'
+    forall e:  CT |- C2 extends C1
+    exists CT0; CT |- class C2 { ff2 } /\ ff2 @ f : C' .
+
+lemma class-field-subtype-lookup:
+    forall o: CT |- CT ok
+    forall fl1: CT; CT |- class C1 { ff1 }
+    forall fs1: ff1 @ f : C'
+    forall s: CT |- C2 <: C1
+    exists CT; CT |- class C2 { ff2 } /\ ff2 @ f : C' .
+
+lemma methods-lookup-undefined-contradiction:
+    forall mlm: mm @ m = C x { FB[x] }
+    forall mum: mm @ m undefined
+    exists contradiction .
+
+lemma methods-lookup-method-unique:
+    forall om: CT; C2 extends C1 |- mm ok
+    forall mlm: mm @ m = C x { FB[x] }
+    forall mlm': mm @ m = C' x { FB'[x] }
+    exists C x { FB[x] } == C' x' { FB'[x'] }.
+
+lemma method-lookup-undefined-class:
+    forall clm: CT0; CT |- C1@m = C x { FB[x] }
+    forall cu: CT @ C1 undefined
+    exists contradiction .
+
+lemma method-lookup-undefined-contradiction:
+    forall lm: CT0; CT |- C@m = C'' x { FB[x] }
+    forall um: CT0; CT |- C@m undefined
+    exists contradiction .
+
+lemma lookup-method-unique :
+    forall o0: CT0 |- CT0 ok
+    forall o: CT0 |- CT ok
+    forall cml:  CT0; CT |- C1@m = C x { FB[x] }
+    forall cml': CT0; CT |- C1@m = C' x { FB'[x] }
+    exists C x { FB[x] } == C' x' { FB'[x'] } .
+
+lemma methods-check-method-total:
+    forall mm
+    forall m
+    exists mm @ m ? .
+
+lemma method-args-type-unique:
+    forall mt: Gamma |- FB : { CC }
+    forall mt':Gamma |- FB : { CC' }
+    exists CC == CC' .
+
+lemma methods-extend-lookup :
+    forall o: CT |- CT ok
+    forall om: CT; C2 extends C1 |- mm ok
+    forall clm: CT; CT |- C1@m = C1' x { FB1[x] }
+    forall mt: *, x:C1 |- FB1[x] : { CC }
+    forall mlm: mm @ m = C2' x { FB2[x] }
+    exists mm @ m = C1' x { FB2[x] } : C2 -> { CC } .
+
+lemma class-method-extends-lookup:
+    forall o0: CT0 |- CT0 ok
+    forall o:  CT0 |- CT ok
+    forall ml: CT0; CT0 |- C1@m = C x { FB[x] }
+    forall mt: *, x:C1 |- FB[x] : { CC }
+    forall e:  CT |- C2 extends C1
+    exists CT0; CT |- C2@m = C x { FB1[x] } : { CC } .
+
+lemma class-method-subtype-lookup:
+    forall o: CT |- CT ok
+    forall ml: CT; CT |- C1@m = C x { FB[x] }
+    forall mt: *, x:C1 |- FB[x] : { CC }
+    forall st: CT |- C2 <: C1
+    exists CT; CT |- C2@m = C x { FB1[x] } : { CC } .
+
+lemma can-project-helper1:
+    forall fft: ff: CC'
+    forall dtt: CT; * |- tt : CC
+    forall ss: CT |- CC <: CC'
+    forall ffs: ff @ f : C
+    exists tt: ff @ f = t .
+
+lemma can-project:
+    forall o: CT |- CT ok
+    forall cfl: CT; CT |- class C1 {ff}
+    forall cflp: CT; CT |- class C1 {ff1}
+    forall fftp: ff1 : CC'
+    forall dtt: CT; * |- tt : CC
+    forall ss: CT |- CC <: CC' 
+    forall ffs: ff @ f : C
+    exists tt : ff @ f = t .
+
+lemma field-lookup-undefined-contradiction:
+    forall fl: ff @ f : C
+    forall fu: ff @ f undefined
+    exists contradiction .
+
+lemma field-lookup-implies-type-lookup:
+    forall fl: tt : ff @ f = t
+    exists ff @ f : C .
+
+lemma select-gets-subtype :
+    forall fft: ff : CC
+    forall dtt: CT; * |- tt : CC'
+    forall ss:  CT |- CC' <: CC
+    forall ffs: ff @ f : C
+    forall fff: tt : ff @ f = t
+    exists CT; * |- t : C' <: C .
+
+lemma can-sub-params :
+    forall mt: * |- FB : { CC' }
+    forall dtt:CT; * |- tt : CC
+    forall ss: CT |- CC <: CC'
+    exists FB tt = t .
+
+lemma canonical-forms:
+    forall dt: CT; Gamma |- t : C
+    forall v: t value
+    exists CT; Gamma |- t value : C .
+
+lemma subtypes-reflexive :
+    forall CT
+    forall CC
+    exists CT |- CC <: CC .
+
+lemma subtypes-transitive:
+    forall ss1: CT |- CC1 <: CC2
+    forall ss2: CT |- CC2 <: CC3
+    exists CT |- CC1 <: CC3.
+
+lemma context-subtype:
+    forall o: CT |- CT ok
+    forall dt1: CT; Gamma, x:C |- t1[x] : C'
+    forall s2: CT |- C2 <: C
+    exists CT; Gamma, x : C2 |- t1[x] : C'' <: C' .
+
+lemma context-subtypes:
+    forall o: CT |- CT ok
+    forall dtt1: CT; Gamma, x:C1 |- tt1[x] : CC'
+    forall s2: CT |- C2 <: C1
+    exists CT; Gamma, x:C2 |- tt1[x] : CC'' <: CC' .
+
+lemma methods-body-type:
+    forall om: CT; C1 extends C1' |- mm ok
+    forall mlm: mm @ m = C x { FB[x] }
+    exists CT; *, x:C1 |- FB[x] : C' <: C .
+
+lemma method-subtype:
+    forall o: CT |- CT ok
+    forall mt: CT; Gamma, x:C1 |- FB[x] : C
+    forall s2: CT |- C2 <: C1
+    exists     CT; Gamma, x:C2 |- FB[x] : C' <: C.
+
+lemma method-body-typed :
+    forall o0: CT0 |- CT0 ok
+    forall o: CT0 |- CT ok
+    forall i: CT0 :> CT
+    forall cml: CT0; CT |- C1@m = C x { FB[x] }
+    exists CT0; *, x:C1 |- FB[x] : C' <: C .
+
+lemma subst:
+    forall dt1: CT; Gamma, x:C |- t1[x] : C'
+    forall dt2: CT; Gamma |- t2 : C
+    exists CT; Gamma |- t1[t2] : C'.
+
+lemma substs:
+    forall dtt1: CT; Gamma, x:C1 |- tt1[x] : CC'
+    forall dt2: CT; Gamma |- t2 : C1
+    exists CT; Gamma |- tt1[t2] : CC' .
+
+lemma subst-subtype:
+    forall o: CT |- CT ok
+    forall dt1: CT; Gamma, x:C |- t1[x] : C'
+    forall dt2: CT; Gamma |- t2 : C2
+    forall s2: CT |- C2 <: C
+    exists CT; Gamma |- t1[t2] : C'' <: C' .
+
+lemma subst-method :
+    forall mt: CT; Gamma, x:C1 |- FB[x] : C
+    forall dt: CT; Gamma |- t : C1
+    exists  CT; Gamma |- FB[t] : C.
+
+lemma subst-method-subtype :
+    forall o: CT |- CT ok
+    forall mt: CT; Gamma, x:C1 |- FB[x] : C
+    forall dt: CT; Gamma |- t : C2
+    forall s2: CT |- C2 <: C1
+    exists  CT; Gamma |- FB[t] : C' <: C.
+
+lemma subst-method-args :
+    forall o: CT |- CT ok
+    forall mtt: * |- FB : { CC }
+    forall dtt: CT; * |- tt : CC'
+    forall ss: CT |- CC' <: CC
+    forall mt: CT; * |- FB : C
+    forall sub: FB tt = t
+    exists CT; * |- t : C' <: C .
+
+theorem progress-loophole:
+    forall CT
+    forall C1
+    forall C2
+    forall vv: tt value
+    exists CT |- (C1) new C2{tt} -> t.
+
+theorem progress :
+    forall o: CT |- CT ok
+    forall dt: CT; * |- t : C
+    exists CT |- t ->? .
+
+theorem progress-terms: 
+    forall o: CT |- CT ok
+    forall dtt: CT; * |- tt : CC
+    exists CT |- tt ->? .
+
+theorem preservation:
+    forall o: CT |- CT ok
+    forall dt: CT; * |- t : C
+    forall e: CT |- t -> t'
+    exists CT; * |- t' : C' <: C.
+
+theorem preservation-terms:
+    forall o: CT |- CT ok
+    forall dtt: CT; * |- tt : CC
+    forall ee: CT |- tt -> tt'
+    exists CT; * |- tt' : CC' <: CC.
+

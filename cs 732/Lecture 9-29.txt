@@ -1,0 +1,56 @@
+t ::= fn x.t[x]		// higher order abstract syntax
+	| x
+	| t t
+
+t2 value //cbv
+------------------------- B
+(\x.t1[x]) t2 ~> t1[t2]
+
+t1 ~> t1'
+-------------- E-app
+t1 t2 ~> t1't2
+
+t1 value //cbv
+t2 ~> t2'
+--------------- e-app2
+t1 t2 ~> t1 t2'
+
+Vx t[x] ~> t'[x]
+----------------------- e-lam // no cbv
+(\x.t[x]) ~> (\x.t'[x])
+
+
+x ? y : z
+(x (\u.y) (\u.z)) I
+
+CHURCH NUMERALS
+
+[n] s z === s^n z
+
+[0] === \s.\z.z
+[1] === \s.\z.sz
+[2] === \s.\z.s(s z)
+
+scc t === \s.\z.s(t s z)
+
+pls === \m.\n.(m scc n)
+
+isz === \n.(n (\x.fls) tru)
+
+mlt === \m.\n.(m (plus n) 0)
+	=== \m.\n.\s.\z.(m (n s) z)
+
+
+val ff = fn f => fn n =>	if n > 0 then n * f(n - 1)
+							else 1
+
+fun fact n = (ff fact n)
+
+val fact = fix ff
+
+fix g -> g(\x.fix gx)
+
+the checkers
+	fulluntyped
+	f test.f
+

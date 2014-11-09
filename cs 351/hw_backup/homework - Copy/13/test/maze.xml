@@ -1,0 +1,210 @@
+<!-- CS 351
+     Fall 2006
+     Maze: try to get from start to end -->
+
+<World>
+<Room name="start">
+  You are at the start of a maze. A golden crown awaits you at the end.
+  <Door dir="west" dest="z"/>
+  <Door dir="north" dest="m"/>
+  <Item name="rock">
+    small rock
+  </Item>
+  <Item name="button">
+    red button
+  </Item>
+</Room>
+
+<Room name="a">
+  You are in the maze.
+  <Door dir="east" dest="d"/>
+  <Door dir="west" dest="h"/>
+  <Door dir="south" dest="e"/>
+</Room>
+
+<Room name="b">
+  You are in the maze.
+  <Item name="stone">
+    rough stone
+  </Item>
+  <Door dir="west" dest="n"/>
+  <Door dir="south" dest="x"/>
+</Room>
+ 
+<Room name="c">
+  You are in the maze.
+  <Item name="dollar-bill" worth="1">
+    dollar bill
+  </Item>
+  <Door dir="north" dest="o"/>
+  <Door dir="west" dest="l"/>
+</Room>
+
+<Room name="d">
+  You are in the maze.
+  <Item name="leaf">
+    torn leaf
+  </Item>
+  <Door dir="east" dest="s"/>
+  <Door dir="west" dest="a"/>
+</Room>
+
+<Room name="e">
+  You are in the maze.
+  <Item name="chip">
+    wood chip
+  </Item>
+  <Door dir="north" dest="a"/>
+  <Door dir="west" dest="k"/>
+  <Door dir="south" dest="q"/>
+</Room>
+
+<Room name="f">
+  You are in the maze.
+  <Door dir="north" dest="k"/>
+  <Door dir="west" dest="p"/>
+</Room>
+
+<Room name="g">
+  You are in the maze.
+  <Door dir="north" dest="s"/>
+  <Door dir="south" dest="z"/>
+</Room>
+
+<Room name="h">
+  You are in the maze.
+  <Door dir="north" dest="x"/>
+  <Door dir="east" dest="a"/>
+</Room>
+
+<Room name="i">
+  You are in the maze.
+  <Door dir="north" dest="u"/>
+  <Door dir="east" dest="t"/>
+  <Door dir="west" dest="x"/>
+</Room>
+
+<Room name="j">
+  You are in the maze.
+  <Door dir="north" dest="r"/>
+  <Door dir="east" dest="z"/>
+  <Door dir="west" dest="q"/>
+</Room>
+
+<Room name="k">
+  You are in the maze.
+  <Door dir="east" dest="e"/>
+  <Door dir="south" dest="f"/>
+  <Door dir="west" dest="w"/>
+</Room>
+
+<Room name="l">
+  You are in the maze.
+  <Door dir="north" dest="v"/>
+  <Door dir="west" dest="t"/>
+  <Door dir="east" dest="c"/>
+</Room>
+
+<Room name="m">
+  You are in the maze.
+  <Door dir="south" dest="start"/>
+  <Door dir="east" dest="v"/>
+</Room>
+
+<Room name="n">
+  You are in the maze.
+  <Door dir="east" dest="b"/>
+  <Door dir="south" dest="o"/>
+</Room>
+
+<Room name="o">
+  You are in the maze.
+  <Door dir="north" dest="n"/>
+  <Door dir="south" dest="c"/>
+</Room>
+
+<Room name="p">
+  You are in the maze.
+  <Door dir="north" dest="y"/>
+  <Door dir="east" dest="f"/>
+</Room>
+
+<Room name="q">
+  You are in the maze.
+  <Door dir="north" dest="e"/>
+  <Door dir="east" dest="j"/>
+</Room>
+
+<Room name="r">
+  You are in the maze.
+  <Door dir="south" dest="j"/>
+  <Item name="feather">
+    bird feather
+  </Item>
+</Room>
+
+<Room name="s">
+  You are in the maze.
+  <Door dir="south" dest="g"/>
+  <Door dir="west" dest="d"/>
+</Room>
+
+<Room name="t">
+  You are in the maze.
+  <Door dir="east" dest="l"/>
+  <Door dir="west" dest="i"/>
+  <Item name="acorn">
+    large acorn
+  </Item>
+</Room>
+
+<Room name="u">
+  You are in the maze.
+  <Door dir="south" dest="i"/>
+  <Door dir="west" dest="y"/>
+</Room>
+
+<Room name="v">
+  You are in the maze.
+  <Door dir="south" dest="l"/>
+  <Door dir="west" dest="m"/>
+</Room>
+
+<Room name="w">
+  You are in the maze.
+  <Door dir="east" dest="k"/>
+  <Door dir="west" dest="end"/>
+</Room>
+
+<Room name="x">
+  You are in the maze.
+  <Door dir="north" dest="b"/>
+  <Door dir="east" dest="i"/>
+  <Door dir="south" dest="h"/>
+</Room>
+
+<Room name="y">
+  You are in the maze.
+  <Door dir="east" dest="u"/>
+  <Door dir="south" dest="p"/>
+</Room>
+
+<Room name="z">
+  You are in the maze.
+  <Door dir="north" dest="g"/>
+  <Door dir="east" dest="start"/>
+  <Door dir="west" dest="j"/>
+  <Item name="pebble">
+    smooth pebble
+  </Item>
+</Room>
+
+<Room name="end">
+  You are at the END of the maze!!
+  <Item name="crown" worth="1000">
+    golden crown
+  </Item>
+  <Door dir="east" dest="w"/>
+</Room>
+
+</World>

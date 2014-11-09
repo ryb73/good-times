@@ -1,0 +1,7 @@
+<!-- nested circles -->
+<Drawing>
+   <Circle radius='40' center='(100,100)' fill='red'>
+      <Circle radius='30' center='(100,100)' outline=blue/>
+    </Circle>
+</Drawing>
+      

@@ -1,0 +1,103 @@
+t1 : Unit
+t2 : T2
+------------ T-Seq
+(t1;t2) : T2
+
+t1 -> t1'
+---------------- E-Seq
+t1;t2 -> t1';t2
+
+------------- E-SeqSemi
+unit;t2 -> t2
+
+
+syntactic sugar
+	t1;t2 === (fn x:Unit => t2) t1
+
+lemma
+	if t1 -> t1'
+	then t1;t2 -> t1';t2
+		(fn x:Unit => t2) t1 -> (fn x:Unit => t2) t1'
+	
+	QED by E-App2
+end lemma
+
+lemma
+	for all t2
+	unit;t2 -> t2
+	(fn x:Unit => t2) unit -> t2
+
+	QED by E-AppAbs
+end lemma
+
+lemma
+	d1: t1 : Unit
+	d2: t2 : T2
+	exists (fn x:Unit => t2) t1 : T2
+
+	d3: G, x:Unit |- t2 : T2 by weakening on d2
+	d4: (fn x:Unit => t2) : Unit -> T2 by rule T-Abs on d3
+	QED by T-App on d4, d1
+end lemma
+
+
+t ::= x
+	| t t
+	| fn x:T => t[x]
+	| unit
+	| <t1, t2>
+	| t@1
+	| t@2
+
+T ::= T -> T
+	| Unit
+	| T X T
+
+
+t1 -> t1'
+---------------------- E-Pair1
+<t1, t2> -> <t1', t2>
+
+t1 value
+t2 -> t2'
+---------------------- E-Pair2
+<t1, t2> -> <t1, t2'>
+
+t1 value
+t2 value
+---------------- E-Proj1-Beta
+<t1, t2>@1 -> t1
+
+t -> t'
+----------- E-Proj2
+t@1 -> t'@1
+
+t1 : T1
+t2 : T2
+------------------ T-Pair
+<t1, t2> : T1 X T2
+
+t1 : T X T'
+----------- T-Proj1
+t1@1 : T
+
+
+
+
+
+T ::= T -> T
+	| Unit
+	| { l:T ... }	// ex { x:Bool, y:Nat }
+
+t ::= ...
+	| { l = t ... } // ex { x = true, y = 0 }
+	| t.l
+
+
+All i: ti : Ti
+----------------------------- T-Rec
+{ l = t ... } : { l : T ... }
+
+t : { l : T ... }
+----------------- T-Proj
+t.li : Ti

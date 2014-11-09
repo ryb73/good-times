@@ -1,0 +1,54 @@
+/*
+	CS 732
+	Homework #2 part 3
+	Ryan Biwer
+*/
+
+package edu.uwm.cs732;
+
+terminals contradiction true false if then else
+
+syntax
+
+t ::= v
+	| if t then t else t
+
+v ::= true
+	| false
+
+judgment eq: t == t
+
+------ eq-v
+v == v
+
+t1 == t1'
+t2 == t2'
+t3 == t3'
+------------------------------------------------- eq-if
+if t1 then t2 else t3 == if t1' then t2' else t3'
+
+theorem if-eq-implies-t1-eq:
+	forall p: if t1 then t2 else t3 == if t1' then t2' else t3'
+	exists t1 == t1' .
+
+	_: t1 == t1' by case analysis on p:
+		case rule
+			e: t1 == t1'
+			_: t2 == t2'
+			_: t3 == t3'
+			---------------------------------------------------- eq-if
+			_: if t1 then t2 else t3 == if t1' then t2' else t3'
+		is
+			_: t1 == t1' by e
+		end case
+	end case analysis
+end theorem
+
+theorem all-eq-implies-if-eq:
+	forall p1: t0 == t0'
+	forall p2: t1 == t1'
+	forall p3: t2 == t2'
+	exists if t0 then t1 else t2 == if t0' then t1' else t2' .
+
+	_: if t0 then t1 else t2 == if t0' then t1' else t2' by rule eq-if on p1, p2, p3
+end theorem

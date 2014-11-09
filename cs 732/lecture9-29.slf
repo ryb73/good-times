@@ -1,0 +1,93 @@
+terminals fn bound var
+
+syntax
+
+t ::= fn x => t[x]
+	| x
+	| t t
+
+Gamma ::= *
+		| Gamma, x bound
+
+judgment isvar: Gamma |- t var
+assumes Gamma
+
+---------------------- isvar
+Gamma, x bound |- x var
+
+judgment any : Gamma |- t ~> t
+assumes Gamma
+
+Gamma |- t1 ~> t1'
+------------------------ any-app-1
+Gamma |- t1 t2 ~> t1' t2
+
+Gamma |- t2 ~> t2'
+------------------------ any-app-2
+Gamma |- t1 t2 ~> t1 t2'
+
+----------------------------------- any-beta
+Gamma |- (fn x => t[x]) t2 ~> t[t2]
+
+Gamma, x bound |- t[x] ~> t'[x]
+------------------------------------------ any-inside
+Gamma |- (fn x => t[x]) ~> (fn x => t'[x])
+
+judgment anys: Gamma |- t ~>* t
+
+---------------- anys-none
+Gamma |- t ~>* t
+
+Gamma |- t ~> t'
+Gamma |- t' ~>* t''
+------------------- anys-more
+Gamma |- t ~>* t''
+
+judgment anys2: Gamma |- t ~>* t /\ t ~>* t
+assumes Gamma
+
+Gamma |- t1 ~>* t1'
+Gamma |- t2 ~>* t2'
+--------------------------------- anys2
+Gamma |- t1 ~>* t1' /\ t2 ~>* t2'
+
+lemma anys-one:
+	forall a: Gamma |- t ~> t'
+	exists Gamma |- t ~>* t' .
+
+	as: Gamma |- t' ~>* t' by rule anys-none
+	_: Gamma |- t ~>* t' by rule anys-more on a, as
+end lemma
+
+lemma any-diamond:
+	forall e1: Gamma |- t ~> t1
+	forall e2: Gamma |- t ~> t2
+	exists Gamma |- t1 ~>* t3 /\ t2 ~>* t3 .
+
+	_: Gamma |- t1 ~>* t3 /\ t2 ~>* t3 by induction on e1:
+		case rule
+			----------------------------------- any-beta
+			_: Gamma |- (fn x => t'[x]) t'' ~> t'[t'']
+		is
+			_: Gamma |- t'[t''] ~>* t3 /\ t2 ~>* t3 by case analysis on e2:
+				case rule
+					e2': Gamma |- (fn x => t'[x]) ~> t51'
+					------------------------------------------ any-app-1
+					_: Gamma |- (fn x => t'[x]) t'' ~> t51' t''
+				is
+					_: Gamma |- t'[t''] ~>* t3 /\ t51' t'' ~>* t3 by case analysis on e2':
+						case rule
+							e2'': Gamma, x bound |- t'[x] ~> t51''[x]
+							--------------------------------------------- any-inside
+							_: Gamma |- (fn x => t'[x]) ~> (fn x => t51''[x])
+						is
+							as1: Gamma |- t'[t''] ~>* t51''[t''] by substitution on e2'', t''
+							as2: Gamma |- (fn x => t51''[x]) t'' ~>* t51''[t''] by rule any-beta
+							_: Gamma |- t'[t''] ~>* t3 /\ (fn x => t51''[x]) t'' ~>* t3 by rule anys2 on as1, as2
+						end case
+					end case analysis
+				end case
+			end case analysis
+		end case
+	end induction
+end lemma

@@ -1,0 +1,182 @@
+/*
+ * CS 732
+ * John Boyland
+ * Addition in SaSyLF
+ * Fall 2011
+ */
+
+package edu.uwm.cs732;
+
+terminals contradiction s
+
+syntax
+
+n ::= 0
+  | s n
+
+
+judgment plus: n + n = n
+
+--------- plus-zero
+0 + n = n
+
+n1 + n2 = n3
+----------------- plus-succ
+s n1 + n2 = s n3
+
+
+judgment absurd: contradiction
+
+
+judgment andplus: n + n = n /\ n + n = n
+
+n1 + n2 = n3
+n1' + n2' = n3'
+------------------------------- plus2
+n1 + n2 = n3 /\ n1' + n2' = n3'
+
+
+judgment equality: n = n
+
+----- eq
+n = n
+
+/*** Easy to prove, but harder to use:
+
+---------- zero-eq
+0 = 0
+
+n1 = n2
+----------- succ-eq
+s n1 = s n2
+
+***/
+
+
+theorem plus-total :
+  forall n1
+  forall n2
+  exists n1 + n2 = n3.
+
+  _: n1 + n2 = n3 by induction on n1:
+    case 0 is
+      _ : 0 + n2 = n2 by rule plus-zero
+    end case
+    case s n is
+      a1 : n + n2 = n' by induction hypothesis on n, n2
+      _ : s n + n2 = s n' by rule plus-succ on a1
+    end case
+  end induction
+end theorem
+
+
+theorem plus-associative :
+    forall p1: n1 + n2 = n3
+    forall p2 : n3 + n4 = n7
+    exists n2 + n4 = n6 /\ n1 + n6 = n7.
+    _ : n2 + n4 = n6 /\ n1 + n6 = n7 by induction on p1:
+	case rule
+	    --------------- plus-zero
+	    _ : 0 + n3 = n3
+	is
+	    p3: 0 + n7 = n7 by rule plus-zero    
+	    _ : n3 + n4 = n7 /\ 0 + n7 = n7 by rule plus2 on p2,p3
+	end case
+	case rule
+	    p1': n1' + n2 = n3'
+	    ---------------------- plus-succ
+	    _ : s n1' + n2 = s n3' 
+	is
+	    _ : n2 + n4 = n6 /\ n1 + n6 = n7 by case analysis on p2:
+		case rule
+		    p2' : n3' + n4 = n7'
+		    ---------------------- plus-succ
+		    _ : s n3' + n4 = s n7'
+		is
+		    a: n2 + n4 = n6 /\ n1' + n6 = n7' by induction hypothesis on p1',p2'
+		    _ : n2 + n4 = n6 /\ s n1' + n6 = s n7' by case analysis on a:
+			case rule
+			    p3 : n2 + n4 = n6
+			    p4' : n1' + n6 = n7'
+			    ------------------------------------- plus2
+			    _: n2 + n4 = n6 /\ n1' + n6 = n7'
+			is
+			    p4 : s n1' + n6 = s n7' by rule plus-succ on p4'
+			    _ : n2 + n4 = n6 /\ s n1' + n6 = s n7' by rule plus2 on p3,p4
+			end case
+		    end case analysis
+		end case
+	    end case analysis
+	end case
+    end induction
+end theorem
+
+
+theorem plus-contradiction :
+    forall p: n1 + (s n2) = 0
+    exists contradiction.
+    _: contradiction by case analysis on p:
+    end case analysis
+end theorem
+
+theorem false-implies-plus :
+    forall a:contradiction
+    forall n1
+    forall n2
+    forall n3
+    exists n1 + n2 = n3.
+    _ : n1 + n2 = n3 by case analysis on a:
+    end case analysis
+end theorem
+
+
+lemma succ-preserves-eq:
+    forall e: n1 = n2
+    exists  s n1 = s n2.
+    _ : s n1 = s n2 by case analysis on e:
+        case rule
+            ---------- eq
+            _: n1 = n1
+        is
+            _: s n1 = s n1 by rule eq
+        end case
+    end case analysis
+end lemma
+
+theorem plus-unique :
+    forall p1: n1 + n2 = n3
+    forall p2: n1 + n2 = n4
+    exists n3 = n4.
+    _ : n3 = n4 by induction on p1:
+        case rule
+            -------------- plus-zero
+            _: 0 + n3 = n3
+        is
+            _: n3 = n4 by case analysis on p2:
+                case rule
+                    -------------- plus-zero
+                    _: 0 + n4 = n4
+                is
+                    _: n4 = n4 by rule eq
+                end case
+            end case analysis
+        end case
+        case rule
+            p: n5 + n2 = n6
+            -------------------- plus-succ
+            _: s n5 + n2 = s n6
+        is
+            _: s n6 = n4 by case analysis on p2:
+                case rule
+					q: n5 + n2 = n7
+                    ------------------- plus-succ
+                    _: s n5 + n2 = s n7
+				is
+					e: n6 = n7 by induction hypothesis on p, q
+					_: s n6 = s n7 by unproved
+                end case
+            end case analysis
+        end case
+   end induction
+end theorem
+

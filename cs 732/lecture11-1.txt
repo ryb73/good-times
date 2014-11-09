@@ -1,0 +1,54 @@
+t ::= t t | x | fn x:T => t[x] | { r } | t@n
+
+r ::= $
+	| n = t, r
+
+T ::= T -> T
+	| { R } | Top
+
+R ::= $
+	| n : T, R
+
+G |- t : T		T <= S
+---------------------- T-Sub
+G |- t : S
+
+
+theorem progress
+	forall dt: * |- t : T
+	exists t ->? .
+
+	QED by induction on dt:
+		case rule T-Sub
+			dt': * |- t : T'
+			_: T' <: T
+			----------------
+			_: * |- t : T
+		is
+			QED by induction on dt'
+		end case
+
+
+theorem preservation
+	forall dt: * |- t : T
+	forall e: t -> t'
+	exists * |- t' : T
+
+	QED by induction on dt:
+		case rule T-Sub
+			dt': * |- t : T'
+			s: T' <: T
+			----------------
+			_: * |- t : T
+		is
+			dt'': * |- t' : T' by induction on dt', e
+			QED by rule T-Sub on dt'', s
+		end case
+
+
+G |- r value
+G |- r : R'
+R' <: R
+------------------------
+G |- { r } value : { R }
+
